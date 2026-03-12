@@ -1,28 +1,14 @@
-# T3 Code
+# Arbor
 
-T3 Code is a minimal web GUI for coding agents. Currently Codex-first, with Claude Code support coming soon.
+Arbor is a local Electron desktop app that bridges GitHub PR discovery with isolated git worktree creation and scoped Claude Code sessions.
 
-## How to use
-
-> [!WARNING]
-> You need to have [Codex CLI](https://github.com/openai/codex) installed and authorized for T3 Code to work.
+## Development
 
 ```bash
-npx t3
+bun install
+bun run dev
 ```
 
-You can also just install the desktop app. It's cooler.
+## Architecture
 
-Install the [desktop app from the Releases page](https://github.com/pingdotgg/t3code/releases)
-
-## Some notes
-
-We are very very early in this project. Expect bugs.
-
-We are not accepting contributions yet.
-
-## If you REALLY want to contribute still.... read this first
-
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening an issue or PR.
-
-Need support? Join the [Discord](https://discord.gg/jn4EGJjrvv).
+Forked from [T3 Code](https://github.com/pingdotgg/t3code). See `prd-arbor.md` for full product requirements.
