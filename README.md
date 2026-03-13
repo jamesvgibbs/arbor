@@ -11,4 +11,4 @@ bun run dev
 
 ## Architecture
 
-Forked from [T3 Code](https://github.com/pingdotgg/t3code). See `prd-arbor.md` for full product requirements.
+Forked from [Arbor](https://github.com/pingdotgg/t3code). See `prd-arbor.md` for full product requirements.

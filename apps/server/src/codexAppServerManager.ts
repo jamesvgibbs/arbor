@@ -18,8 +18,8 @@ import {
   type ProviderTurnStartResult,
   RuntimeMode,
   ProviderInteractionMode,
-} from "@t3tools/contracts";
-import { normalizeModelSlug } from "@t3tools/shared/model";
+} from "@arbortools/contracts";
+import { normalizeModelSlug } from "@arbortools/shared/model";
 import { Effect, ServiceMap } from "effect";
 
 import {
@@ -405,7 +405,7 @@ export function buildCodexInitializeParams() {
   return {
     clientInfo: {
       name: "t3code_desktop",
-      title: "T3 Code Desktop",
+      title: "Arbor Desktop",
       version: "0.1.0",
     },
     capabilities: {

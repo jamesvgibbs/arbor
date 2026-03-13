@@ -1,13 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-import { type ProviderKind } from "@t3tools/contracts";
-import { getModelOptions, normalizeModelSlug } from "@t3tools/shared/model";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useRef, useState } from "react";
+import { type ProviderKind } from "@arbortools/contracts";
+import { getModelOptions, normalizeModelSlug } from "@arbortools/shared/model";
+import {
+  GitBranchIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ExternalLinkIcon,
+  UserIcon,
+} from "lucide-react";
 import { MAX_CUSTOM_MODEL_LENGTH, useAppSettings } from "../appSettings";
 import { resolveAndPersistPreferredEditor } from "../editorPreferences";
 import { isElectron } from "../env";
 import { useTheme } from "../hooks/useTheme";
 import { serverConfigQueryOptions } from "../lib/serverReactQuery";
+import {
+  githubAuthStatusQueryOptions,
+  githubStartAuthMutationOptions,
+  githubPollAuthMutationOptions,
+  githubLogoutMutationOptions,
+  githubReposQueryOptions,
+  githubAddRepoMutationOptions,
+  githubRemoveRepoMutationOptions,
+} from "../lib/githubReactQuery";
 import { ensureNativeApi } from "../nativeApi";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -77,6 +93,276 @@ function patchCustomModels(provider: ProviderKind, models: string[]) {
     default:
       return { customCodexModels: models };
   }
+}
+
+function GitHubSettingsSection() {
+  const queryClient = useQueryClient();
+  const authQuery = useQuery(githubAuthStatusQueryOptions());
+  const reposQuery = useQuery(githubReposQueryOptions());
+
+  const startAuthMutation = useMutation(githubStartAuthMutationOptions({ queryClient }));
+  const pollAuthMutation = useMutation(githubPollAuthMutationOptions({ queryClient }));
+  const logoutMutation = useMutation(githubLogoutMutationOptions({ queryClient }));
+  const addRepoMutation = useMutation(githubAddRepoMutationOptions({ queryClient }));
+  const removeRepoMutation = useMutation(githubRemoveRepoMutationOptions({ queryClient }));
+
+  const [repoInput, setRepoInput] = useState("");
+  const [repoError, setRepoError] = useState<string | null>(null);
+  const pollingRef = useRef(false);
+
+  const isAuthenticated = authQuery.data?.authenticated === true;
+  const repos = reposQuery.data ?? [];
+
+  const handleStartAuth = useCallback(() => {
+    startAuthMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        if (
+          !pollingRef.current &&
+          data.status === "device_flow_started" &&
+          data.deviceFlow
+        ) {
+          pollingRef.current = true;
+          pollAuthMutation.mutate(
+            {
+              deviceCode: data.deviceFlow.deviceCode,
+              interval: data.deviceFlow.interval,
+            },
+            {
+              onSettled: () => {
+                pollingRef.current = false;
+              },
+            },
+          );
+        }
+      },
+    });
+  }, [startAuthMutation, pollAuthMutation]);
+
+  const handleAddRepo = useCallback(() => {
+    const trimmed = repoInput.trim();
+    if (!trimmed) {
+      setRepoError("Enter a repository in owner/repo format.");
+      return;
+    }
+    const parts = trimmed.split("/");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      setRepoError("Invalid format. Use owner/repo (e.g. facebook/react).");
+      return;
+    }
+    const [owner, repo] = parts;
+    if (repos.some((r) => r.owner === owner && r.repo === repo)) {
+      setRepoError("That repository is already added.");
+      return;
+    }
+    setRepoError(null);
+    addRepoMutation.mutate({ owner, repo });
+    setRepoInput("");
+  }, [repoInput, repos, addRepoMutation]);
+
+  return (
+    <>
+      {/* GitHub Authentication */}
+      <section className="rounded-2xl border border-border bg-card p-5">
+        <div className="mb-4">
+          <h2 className="text-sm font-medium text-foreground">GitHub</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Connect your GitHub account to review pull requests.
+          </p>
+        </div>
+
+        {authQuery.isLoading && (
+          <div className="rounded-lg border border-border bg-background px-3 py-4 text-xs text-muted-foreground">
+            Checking GitHub connection...
+          </div>
+        )}
+
+        {isAuthenticated && authQuery.data && (
+          <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
+            <div className="flex items-center gap-3">
+              {authQuery.data.avatarUrl ? (
+                <img
+                  src={authQuery.data.avatarUrl}
+                  alt={authQuery.data.username ?? "GitHub user"}
+                  className="size-8 rounded-full"
+                />
+              ) : (
+                <div className="flex size-8 items-center justify-center rounded-full bg-muted">
+                  <UserIcon className="size-4 text-muted-foreground" />
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {authQuery.data.username ?? "Connected"}
+                </p>
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <CheckCircleIcon className="size-3 text-green-500" />
+                  GitHub connected
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => logoutMutation.mutate(undefined)}
+              disabled={logoutMutation.isPending}
+            >
+              Disconnect
+            </Button>
+          </div>
+        )}
+
+        {authQuery.isSuccess && !isAuthenticated && !startAuthMutation.data && (
+          <div className="flex flex-col gap-3">
+            <div className="rounded-lg border border-dashed border-border bg-background px-3 py-4 text-center text-xs text-muted-foreground">
+              No GitHub account connected.
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleStartAuth}
+              disabled={startAuthMutation.isPending}
+            >
+              <GitBranchIcon className="size-3.5" />
+              {startAuthMutation.isPending ? "Starting..." : "Connect GitHub"}
+            </Button>
+          </div>
+        )}
+
+        {startAuthMutation.data &&
+          startAuthMutation.data.status === "device_flow_started" &&
+          !isAuthenticated && (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-4 text-center">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Enter this code on GitHub to authenticate:
+                </p>
+                <p className="font-mono text-2xl font-bold tracking-widest text-foreground">
+                  {startAuthMutation.data.deviceFlow.userCode}
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <a
+                  href={startAuthMutation.data.deviceFlow.verificationUri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                >
+                  Open GitHub
+                  <ExternalLinkIcon className="size-3.5" />
+                </a>
+              </div>
+              {pollAuthMutation.isPending && (
+                <p className="text-center text-xs text-muted-foreground">
+                  Waiting for authorization...
+                </p>
+              )}
+              {pollAuthMutation.data?.error && (
+                <p className="text-center text-xs text-destructive">
+                  {pollAuthMutation.data.error}
+                </p>
+              )}
+            </div>
+          )}
+
+        {startAuthMutation.isError && (
+          <p className="mt-2 text-xs text-destructive">
+            Failed to start authentication. Please try again.
+          </p>
+        )}
+      </section>
+
+      {/* Repositories */}
+      {isAuthenticated && (
+        <section className="rounded-2xl border border-border bg-card p-5">
+          <div className="mb-4">
+            <h2 className="text-sm font-medium text-foreground">Repositories</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Manage GitHub repositories to track for pull requests.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <label htmlFor="github-repo-input" className="block flex-1 space-y-1">
+                <span className="text-xs font-medium text-foreground">Add repository</span>
+                <Input
+                  id="github-repo-input"
+                  value={repoInput}
+                  onChange={(e) => {
+                    setRepoInput(e.target.value);
+                    if (repoError) setRepoError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    handleAddRepo();
+                  }}
+                  placeholder="owner/repo"
+                  spellCheck={false}
+                />
+                <span className="text-xs text-muted-foreground">
+                  Example: <code>facebook/react</code>
+                </span>
+              </label>
+
+              <Button
+                className="sm:mt-6"
+                type="button"
+                onClick={handleAddRepo}
+                disabled={addRepoMutation.isPending}
+              >
+                Add repository
+              </Button>
+            </div>
+
+            {repoError ? <p className="text-xs text-destructive">{repoError}</p> : null}
+
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Tracked repositories: {repos.length}
+              </p>
+
+              {repos.length > 0 ? (
+                <div className="space-y-2">
+                  {repos.map((r) => {
+                    const slug = `${r.owner}/${r.repo}`;
+                    return (
+                      <div
+                        key={slug}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <GitBranchIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                          <code className="min-w-0 flex-1 truncate text-xs text-foreground">
+                            {slug}
+                          </code>
+                        </div>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() =>
+                            removeRepoMutation.mutate({ owner: r.owner, repo: r.repo })
+                          }
+                          disabled={removeRepoMutation.isPending}
+                          aria-label={`Remove ${slug}`}
+                        >
+                          <XCircleIcon className="size-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-background px-3 py-4 text-xs text-muted-foreground">
+                  No repositories tracked yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+    </>
+  );
 }
 
 function SettingsRouteView() {
@@ -203,6 +489,8 @@ function SettingsRouteView() {
                 Configure app-level preferences for this device.
               </p>
             </header>
+
+            <GitHubSettingsSection />
 
             <section className="rounded-2xl border border-border bg-card p-5">
               <div className="mb-4">
@@ -503,6 +791,52 @@ function SettingsRouteView() {
                 </div>
               ) : null}
             </section>
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <div className="mb-4">
+                <h2 className="text-sm font-medium text-foreground">Review Sessions</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Configure behavior when starting PR review sessions.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Initialize Claude context on new review sessions
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Run <code>claude /init</code> to generate a repo-aware CLAUDE.md when creating a
+                    new review worktree.
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.autoInitReviewContext}
+                  onCheckedChange={(checked) =>
+                    updateSettings({
+                      autoInitReviewContext: Boolean(checked),
+                    })
+                  }
+                  aria-label="Initialize Claude context on new review sessions"
+                />
+              </div>
+
+              {settings.autoInitReviewContext !== defaults.autoInitReviewContext ? (
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() =>
+                      updateSettings({
+                        autoInitReviewContext: defaults.autoInitReviewContext,
+                      })
+                    }
+                  >
+                    Restore default
+                  </Button>
+                </div>
+              ) : null}
+            </section>
+
             <section className="rounded-2xl border border-border bg-card p-5">
               <div className="mb-4">
                 <h2 className="text-sm font-medium text-foreground">About</h2>

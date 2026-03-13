@@ -46,7 +46,7 @@ Reviewing pull requests locally with Claude Code today requires a developer to m
 ### Functional Requirements for GitHub Integration
 
 - The app must allow a user to authenticate with GitHub via OAuth and store the token securely in Electron's keychain
-- The app must allow a user to add one or more GitHub repositories by owner/repo slug (e.g. `secondnature-io/snapi`)
+- The app must allow a user to add one or more GitHub repositories by owner/repo slug (e.g. `secondnature-com/rbp-api`)
 - The app must fetch and display all open pull requests for each configured repository, showing: PR number, title, author, age, CI status (pass/fail/pending), and review status (approved/changes requested/awaiting)
 - The PR list must refresh automatically on a configurable interval (default: 5 minutes) and support manual refresh
 - The app must support repositories from any GitHub organization or user account, not only Second Nature repos
@@ -289,14 +289,14 @@ New bounded contexts added on top of T3 Code:
 3. **Implementation**:
    a. Add "Sessions" tab to sidebar alongside repo/PR list
    b. Each session card shows: repo name, PR number + title (truncated), branch name, disk size, created date, and status indicator (active/idle)
-   c. Context menu (right-click) on session card: "Open Session", "Open in Cursor/VS Code", "Copy Worktree Path", "Remove Worktree"
-   d. "Open in Cursor" shells out to `cursor {worktreePath}` as an escape hatch for users who want their IDE directly
+   c. Context menu (right-click) on session card: "Open Session", "Open in Windsurf/VS Code", "Copy Worktree Path", "Remove Worktree"
+   d. "Open in Windsurf" shells out to `windsurf {worktreePath}` as an escape hatch for users who want their IDE directly
    e. Cleanup confirmation modal: "Remove worktree for PR #142? This will delete {path} ({size}MB). This cannot be undone."
 4. **Acceptance Criteria**:
    a. All active sessions visible in sidebar with accurate metadata
    b. Clicking a session opens the Claude Code session view for that worktree
    c. Remove confirmation modal appears before deletion; no worktree is deleted without confirmation
-   d. "Open in Cursor" successfully opens the worktree directory in Cursor
+   d. "Open in Windsurf" successfully opens the worktree directory in Windsurf
 
 ### Phase 4: CLAUDE.md Scaffolding
 
@@ -424,7 +424,7 @@ The following questions were resolved during PRD review:
 
 3. **CLAUDE.md Template**: Use `claude /init` (Claude Code's built-in init command) as the generation mechanism when no CLAUDE.md exists, rather than a custom template. This produces a repo-aware context file using Claude's own understanding of the codebase. The app triggers `/init` in the worktree after creation, then appends a PR-specific header block (PR number, title, author, diff stat) to the top of the generated file.
 
-4. **Multi-window vs. Tab Model**: Retain T3 Code's single-window tab model for v1. No multi-window support required. Users wanting side-by-side can open a second app instance.
+4. **Multi-window vs. Tab Model**: Retain Arbor's single-window tab model for v1. No multi-window support required. Users wanting side-by-side can open a second app instance.
 
 5. **Lifecycle-Driven Cleanup**:
    - **PR Merged**: Auto-clean the worktree silently. No prompt. The work is done.
