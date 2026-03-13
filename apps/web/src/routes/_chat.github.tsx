@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   DEFAULT_MODEL_BY_PROVIDER,
   type GitHubRepoConfig,
@@ -29,6 +29,7 @@ import {
   reviewContextInitMutationOptions,
 } from "~/lib/reviewContextReactQuery";
 import { useHandleNewThread } from "~/hooks/useHandleNewThread";
+import { useAppSettings } from "../appSettings";
 import { ensureNativeApi } from "../nativeApi";
 import { newCommandId, newProjectId } from "../lib/utils";
 import { isElectron } from "../env";
@@ -85,13 +86,24 @@ const REVIEW_STATUS_LABELS: Record<GitHubPRCard["reviewStatus"], string> = {
   unknown: "No reviews",
 };
 
+type ReviewProgressStep = "worktree" | "context" | "project";
+
+interface ReviewProgress {
+  prNumber: number;
+  step: ReviewProgressStep;
+  contextSubLabel: string | null;
+  abortController: AbortController | null;
+}
+
 function GitHubRouteView() {
   const queryClient = useQueryClient();
   const authQuery = useQuery(githubAuthStatusQueryOptions());
   const reposQuery = useQuery(githubReposQueryOptions());
   const [selectedRepoKey, setSelectedRepoKey] = useState<string>("");
-  const [startingPR, setStartingPR] = useState<number | null>(null);
+  const [progress, setProgress] = useState<ReviewProgress | null>(null);
+  const contextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const { settings } = useAppSettings();
   const worktreeCreateMutation = useMutation(
     worktreeCreateMutationOptions({ queryClient }),
   );
@@ -344,95 +356,168 @@ function GitHubRouteView() {
                             </div>
                           </div>
 
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="shrink-0"
-                            disabled={startingPR === pr.number}
-                            onClick={async () => {
-                              if (!activeOwner || !activeRepo) return;
-                              setStartingPR(pr.number);
-                              try {
-                                const result = await worktreeCreateMutation.mutateAsync({
-                                  owner: activeOwner,
-                                  repo: activeRepo,
+                          <div className="flex shrink-0 flex-col items-end gap-1.5">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              disabled={progress?.prNumber === pr.number}
+                              onClick={async () => {
+                                if (!activeOwner || !activeRepo) return;
+                                const ac = new AbortController();
+                                setProgress({
                                   prNumber: pr.number,
-                                  prTitle: pr.title,
-                                  branchName: pr.headBranch,
-                                  baseBranch: pr.baseBranch,
-                                  repoUrl: `https://github.com/${activeOwner}/${activeRepo}.git`,
+                                  step: "worktree",
+                                  contextSubLabel: null,
+                                  abortController: ac,
                                 });
+                                try {
+                                  // Step 1: Create worktree
+                                  const result = await worktreeCreateMutation.mutateAsync({
+                                    owner: activeOwner,
+                                    repo: activeRepo,
+                                    prNumber: pr.number,
+                                    prTitle: pr.title,
+                                    branchName: pr.headBranch,
+                                    baseBranch: pr.baseBranch,
+                                    repoUrl: `https://github.com/${activeOwner}/${activeRepo}.git`,
+                                  });
 
-                                const worktreePath = result.session.worktreePath;
+                                  const worktreePath = result.session.worktreePath;
 
-                                // Scaffold CLAUDE.md review context
-                                if (!result.alreadyExisted) {
-                                  try {
-                                    const ctxResult = await reviewContextInitMutation.mutateAsync({
-                                      worktreePath,
-                                      prNumber: pr.number,
-                                      prTitle: pr.title,
-                                      prAuthor: pr.author,
-                                      headBranch: pr.headBranch,
-                                      baseBranch: pr.baseBranch,
-                                      diffStat: "",
-                                    });
-                                    if (ctxResult.existedAlready) {
+                                  // Step 2: Scaffold CLAUDE.md review context
+                                  if (!result.alreadyExisted) {
+                                    setProgress((p) =>
+                                      p ? { ...p, step: "context" } : p,
+                                    );
+
+                                    // Start 10s sub-label timer
+                                    const timer = setTimeout(() => {
+                                      setProgress((p) =>
+                                        p?.step === "context"
+                                          ? {
+                                              ...p,
+                                              contextSubLabel:
+                                                "This may take a moment for large repos\u2026",
+                                            }
+                                          : p,
+                                      );
+                                    }, 10_000);
+                                    contextTimerRef.current = timer;
+
+                                    const shouldInit =
+                                      settings.autoInitReviewContext && !ac.signal.aborted;
+
+                                    try {
+                                      const ctxResult =
+                                        await reviewContextInitMutation.mutateAsync({
+                                          worktreePath,
+                                          prNumber: pr.number,
+                                          prTitle: pr.title,
+                                          prAuthor: pr.author,
+                                          headBranch: pr.headBranch,
+                                          baseBranch: pr.baseBranch,
+                                          diffStat: "",
+                                          skipInit: !shouldInit || ac.signal.aborted,
+                                        });
+                                      if (ctxResult.existedAlready) {
+                                        toastManager.add({
+                                          title: "Using existing CLAUDE.md found in repo",
+                                        });
+                                      } else {
+                                        toastManager.add({
+                                          title: ctxResult.ranInit
+                                            ? "Review context initialized \u2014 CLAUDE.md ready"
+                                            : "PR review context written to CLAUDE.md",
+                                        });
+                                      }
+                                    } catch {
                                       toastManager.add({
-                                        title: "Using existing CLAUDE.md found in repo",
+                                        title: "Failed to initialize review context",
                                       });
-                                    } else {
-                                      toastManager.add({
-                                        title: ctxResult.ranInit
-                                          ? "Review context initialized \u2014 CLAUDE.md ready"
-                                          : "PR review context written to CLAUDE.md",
-                                      });
+                                    } finally {
+                                      clearTimeout(timer);
+                                      contextTimerRef.current = null;
                                     }
-                                  } catch {
-                                    // Non-blocking: continue session launch even if context init fails
-                                    toastManager.add({
-                                      title: "Failed to initialize review context",
+                                  }
+
+                                  // Step 3: Create project & thread
+                                  setProgress((p) =>
+                                    p ? { ...p, step: "project" } : p,
+                                  );
+
+                                  const existingProject = projects.find(
+                                    (p) => p.cwd === worktreePath,
+                                  );
+                                  let projectId = existingProject?.id;
+
+                                  if (!projectId) {
+                                    const api = ensureNativeApi();
+                                    projectId = newProjectId();
+                                    const title = `PR #${pr.number}: ${pr.title}`;
+                                    await api.orchestration.dispatchCommand({
+                                      type: "project.create",
+                                      commandId: newCommandId(),
+                                      projectId,
+                                      title,
+                                      workspaceRoot: worktreePath,
+                                      defaultModel: DEFAULT_MODEL_BY_PROVIDER.codex,
+                                      createdAt: new Date().toISOString(),
                                     });
                                   }
-                                }
 
-                                // Find or create a project rooted at the worktree path
-                                const existingProject = projects.find((p) => p.cwd === worktreePath);
-                                let projectId = existingProject?.id;
-
-                                if (!projectId) {
-                                  const api = ensureNativeApi();
-                                  projectId = newProjectId();
-                                  const title = `PR #${pr.number}: ${pr.title}`;
-                                  await api.orchestration.dispatchCommand({
-                                    type: "project.create",
-                                    commandId: newCommandId(),
-                                    projectId,
-                                    title,
-                                    workspaceRoot: worktreePath,
-                                    defaultModel: DEFAULT_MODEL_BY_PROVIDER.codex,
-                                    createdAt: new Date().toISOString(),
+                                  await handleNewThread(projectId, {
+                                    branch: result.session.branchName,
+                                    worktreePath,
                                   });
+                                } finally {
+                                  if (contextTimerRef.current) {
+                                    clearTimeout(contextTimerRef.current);
+                                    contextTimerRef.current = null;
+                                  }
+                                  setProgress(null);
                                 }
-
-                                await handleNewThread(projectId, {
-                                  branch: result.session.branchName,
-                                  worktreePath,
-                                });
-                              } finally {
-                                setStartingPR(null);
-                              }
-                            }}
-                          >
-                            {startingPR === pr.number ? (
-                              <>
-                                <LoaderIcon className="size-3.5 animate-spin" />
-                                Creating...
-                              </>
-                            ) : (
-                              "Start Review"
-                            )}
-                          </Button>
+                              }}
+                            >
+                              {progress?.prNumber === pr.number ? (
+                                <>
+                                  <LoaderIcon className="size-3.5 animate-spin" />
+                                  {progress.step === "worktree" && "Creating worktree\u2026"}
+                                  {progress.step === "context" &&
+                                    "Initializing Claude context\u2026"}
+                                  {progress.step === "project" && "Starting session\u2026"}
+                                </>
+                              ) : (
+                                "Start Review"
+                              )}
+                            </Button>
+                            {progress?.prNumber === pr.number &&
+                              progress.step === "context" && (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  {progress.contextSubLabel && (
+                                    <span className="text-[11px] text-muted-foreground">
+                                      {progress.contextSubLabel}
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="text-[11px] text-primary hover:underline"
+                                    onClick={() => {
+                                      progress.abortController?.abort();
+                                      setProgress((p) =>
+                                        p
+                                          ? {
+                                              ...p,
+                                              contextSubLabel: "Skipping\u2026",
+                                            }
+                                          : p,
+                                      );
+                                    }}
+                                  >
+                                    Skip context init
+                                  </button>
+                                </div>
+                              )}
+                          </div>
                         </div>
                       </section>
                     ))}

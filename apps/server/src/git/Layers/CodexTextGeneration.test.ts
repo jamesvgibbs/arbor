@@ -90,45 +90,45 @@ function withFakeCodexEnv<A, E, R>(
       const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-codex-text-" });
       const binDir = yield* makeFakeCodexBinary(tempDir);
       const previousPath = process.env.PATH;
-      const previousOutput = process.env.T3_FAKE_CODEX_OUTPUT_B64;
-      const previousExitCode = process.env.T3_FAKE_CODEX_EXIT_CODE;
-      const previousStderr = process.env.T3_FAKE_CODEX_STDERR;
-      const previousRequireImage = process.env.T3_FAKE_CODEX_REQUIRE_IMAGE;
-      const previousStdinMustContain = process.env.T3_FAKE_CODEX_STDIN_MUST_CONTAIN;
-      const previousStdinMustNotContain = process.env.T3_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN;
+      const previousOutput = process.env.ARBOR_FAKE_CODEX_OUTPUT_B64;
+      const previousExitCode = process.env.ARBOR_FAKE_CODEX_EXIT_CODE;
+      const previousStderr = process.env.ARBOR_FAKE_CODEX_STDERR;
+      const previousRequireImage = process.env.ARBOR_FAKE_CODEX_REQUIRE_IMAGE;
+      const previousStdinMustContain = process.env.ARBOR_FAKE_CODEX_STDIN_MUST_CONTAIN;
+      const previousStdinMustNotContain = process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN;
 
       yield* Effect.sync(() => {
         process.env.PATH = `${binDir}:${previousPath ?? ""}`;
-        process.env.T3_FAKE_CODEX_OUTPUT_B64 = Buffer.from(input.output, "utf8").toString("base64");
+        process.env.ARBOR_FAKE_CODEX_OUTPUT_B64 = Buffer.from(input.output, "utf8").toString("base64");
 
         if (input.exitCode !== undefined) {
-          process.env.T3_FAKE_CODEX_EXIT_CODE = String(input.exitCode);
+          process.env.ARBOR_FAKE_CODEX_EXIT_CODE = String(input.exitCode);
         } else {
-          delete process.env.T3_FAKE_CODEX_EXIT_CODE;
+          delete process.env.ARBOR_FAKE_CODEX_EXIT_CODE;
         }
 
         if (input.stderr !== undefined) {
-          process.env.T3_FAKE_CODEX_STDERR = input.stderr;
+          process.env.ARBOR_FAKE_CODEX_STDERR = input.stderr;
         } else {
-          delete process.env.T3_FAKE_CODEX_STDERR;
+          delete process.env.ARBOR_FAKE_CODEX_STDERR;
         }
 
         if (input.requireImage) {
-          process.env.T3_FAKE_CODEX_REQUIRE_IMAGE = "1";
+          process.env.ARBOR_FAKE_CODEX_REQUIRE_IMAGE = "1";
         } else {
-          delete process.env.T3_FAKE_CODEX_REQUIRE_IMAGE;
+          delete process.env.ARBOR_FAKE_CODEX_REQUIRE_IMAGE;
         }
 
         if (input.stdinMustContain !== undefined) {
-          process.env.T3_FAKE_CODEX_STDIN_MUST_CONTAIN = input.stdinMustContain;
+          process.env.ARBOR_FAKE_CODEX_STDIN_MUST_CONTAIN = input.stdinMustContain;
         } else {
-          delete process.env.T3_FAKE_CODEX_STDIN_MUST_CONTAIN;
+          delete process.env.ARBOR_FAKE_CODEX_STDIN_MUST_CONTAIN;
         }
 
         if (input.stdinMustNotContain !== undefined) {
-          process.env.T3_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN = input.stdinMustNotContain;
+          process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN = input.stdinMustNotContain;
         } else {
-          delete process.env.T3_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN;
+          delete process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN;
         }
       });
 
@@ -148,39 +148,39 @@ function withFakeCodexEnv<A, E, R>(
         process.env.PATH = previous.previousPath;
 
         if (previous.previousOutput === undefined) {
-          delete process.env.T3_FAKE_CODEX_OUTPUT_B64;
+          delete process.env.ARBOR_FAKE_CODEX_OUTPUT_B64;
         } else {
-          process.env.T3_FAKE_CODEX_OUTPUT_B64 = previous.previousOutput;
+          process.env.ARBOR_FAKE_CODEX_OUTPUT_B64 = previous.previousOutput;
         }
 
         if (previous.previousExitCode === undefined) {
-          delete process.env.T3_FAKE_CODEX_EXIT_CODE;
+          delete process.env.ARBOR_FAKE_CODEX_EXIT_CODE;
         } else {
-          process.env.T3_FAKE_CODEX_EXIT_CODE = previous.previousExitCode;
+          process.env.ARBOR_FAKE_CODEX_EXIT_CODE = previous.previousExitCode;
         }
 
         if (previous.previousStderr === undefined) {
-          delete process.env.T3_FAKE_CODEX_STDERR;
+          delete process.env.ARBOR_FAKE_CODEX_STDERR;
         } else {
-          process.env.T3_FAKE_CODEX_STDERR = previous.previousStderr;
+          process.env.ARBOR_FAKE_CODEX_STDERR = previous.previousStderr;
         }
 
         if (previous.previousRequireImage === undefined) {
-          delete process.env.T3_FAKE_CODEX_REQUIRE_IMAGE;
+          delete process.env.ARBOR_FAKE_CODEX_REQUIRE_IMAGE;
         } else {
-          process.env.T3_FAKE_CODEX_REQUIRE_IMAGE = previous.previousRequireImage;
+          process.env.ARBOR_FAKE_CODEX_REQUIRE_IMAGE = previous.previousRequireImage;
         }
 
         if (previous.previousStdinMustContain === undefined) {
-          delete process.env.T3_FAKE_CODEX_STDIN_MUST_CONTAIN;
+          delete process.env.ARBOR_FAKE_CODEX_STDIN_MUST_CONTAIN;
         } else {
-          process.env.T3_FAKE_CODEX_STDIN_MUST_CONTAIN = previous.previousStdinMustContain;
+          process.env.ARBOR_FAKE_CODEX_STDIN_MUST_CONTAIN = previous.previousStdinMustContain;
         }
 
         if (previous.previousStdinMustNotContain === undefined) {
-          delete process.env.T3_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN;
+          delete process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN;
         } else {
-          process.env.T3_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN = previous.previousStdinMustNotContain;
+          process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN = previous.previousStdinMustNotContain;
         }
       }),
   );

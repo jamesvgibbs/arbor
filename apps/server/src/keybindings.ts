@@ -16,7 +16,7 @@ import {
   ResolvedKeybindingRule,
   ResolvedKeybindingsConfig,
   type ServerConfigIssue,
-} from "@t3tools/contracts";
+} from "@arbortools/contracts";
 import { Mutable } from "effect/Types";
 import {
   Array,

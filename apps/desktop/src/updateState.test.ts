@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DesktopUpdateState } from "@t3tools/contracts";
+import type { DesktopUpdateState } from "@arbortools/contracts";
 
 import {
   getCanRetryAfterDownloadFailure,
@@ -84,7 +84,7 @@ describe("getAutoUpdateDisabledReason", () => {
         appImage: undefined,
         disabledByEnv: true,
       }),
-    ).toContain("T3CODE_DISABLE_AUTO_UPDATE");
+    ).toContain("ARBOR_DISABLE_AUTO_UPDATE");
   });
 
   it("reports linux non-AppImage builds as disabled", () => {
