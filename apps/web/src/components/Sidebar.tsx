@@ -4,6 +4,7 @@ import {
   FolderIcon,
   FolderOpenIcon,
   GitPullRequestIcon,
+  LightbulbIcon,
   PlusIcon,
   RocketIcon,
   SettingsIcon,
@@ -33,7 +34,6 @@ import {
   ProjectId,
   ThreadId,
   type GitStatusResult,
-  type ResolvedKeybindingsConfig,
 } from "@arbortools/contracts";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
@@ -42,15 +42,17 @@ import { isElectron } from "../env";
 import { APP_STAGE_LABEL, APP_VERSION } from "../branding";
 import { isMacPlatform, newCommandId, newProjectId } from "../lib/utils";
 import { useStore } from "../store";
-import { shortcutLabelForCommand } from "../keybindings";
 import { derivePendingApprovals, derivePendingUserInputs } from "../session-logic";
 import { gitRemoveWorktreeMutationOptions, gitStatusQueryOptions } from "../lib/gitReactQuery";
 import { worktreeListQueryOptions } from "../lib/worktreeReactQuery";
-import { serverConfigQueryOptions } from "../lib/serverReactQuery";
 import { readNativeApi } from "../nativeApi";
 import { useComposerDraftStore } from "../composerDraftStore";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
+import { useStartThoughtExercise } from "../hooks/useStartThoughtExercise";
+import { isThoughtBranch } from "./ChatView.logic";
+import { ThoughtBranchPicker } from "./ThoughtBranchPicker";
 import { selectThreadTerminalState, useTerminalStateStore } from "../terminalStateStore";
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from "./ui/menu";
 import { toastManager } from "./ui/toast";
 import {
   getArm64IntelBuildWarningDescription,
@@ -91,7 +93,6 @@ import {
   shouldClearThreadSelectionOnMouseDown,
 } from "./Sidebar.logic";
 
-const EMPTY_KEYBINDINGS: ResolvedKeybindingsConfig = [];
 const THREAD_PREVIEW_LIMIT = 6;
 
 async function copyTextToClipboard(text: string): Promise<void> {
@@ -299,10 +300,6 @@ export default function Sidebar() {
     strict: false,
     select: (params) => (params.threadId ? ThreadId.makeUnsafe(params.threadId) : null),
   });
-  const { data: keybindings = EMPTY_KEYBINDINGS } = useQuery({
-    ...serverConfigQueryOptions(),
-    select: (config) => config.keybindings,
-  });
   const queryClient = useQueryClient();
   const removeWorktreeMutation = useMutation(gitRemoveWorktreeMutationOptions({ queryClient }));
   const worktreeListQuery = useQuery(worktreeListQueryOptions());
@@ -335,6 +332,11 @@ export default function Sidebar() {
   const clearSelection = useThreadSelectionStore((s) => s.clearSelection);
   const removeFromSelection = useThreadSelectionStore((s) => s.removeFromSelection);
   const setSelectionAnchor = useThreadSelectionStore((s) => s.setAnchor);
+  const { startThoughtExercise } = useStartThoughtExercise();
+  const [thoughtPickerProjectId, setThoughtPickerProjectId] = useState<ProjectId | null>(null);
+  const thoughtPickerProject = thoughtPickerProjectId
+    ? projects.find((p) => p.id === thoughtPickerProjectId) ?? null
+    : null;
   const shouldBrowseForProjectImmediately = isElectron;
   const shouldShowProjectPathEntry = addingProject && !shouldBrowseForProjectImmediately;
   const projectCwdById = useMemo(
@@ -1052,12 +1054,6 @@ export default function Sidebar() {
         : shouldHighlightDesktopUpdateError(desktopUpdateState)
           ? "text-rose-500 animate-pulse"
           : "text-amber-500 animate-pulse";
-  const newThreadShortcutLabel = useMemo(
-    () =>
-      shortcutLabelForCommand(keybindings, "chat.newLocal") ??
-      shortcutLabelForCommand(keybindings, "chat.new"),
-    [keybindings],
-  );
 
   const handleDesktopUpdateButtonClick = useCallback(() => {
     const bridge = window.desktopBridge;
@@ -1383,8 +1379,8 @@ export default function Sidebar() {
                                 <GitPullRequestIcon className="size-3 shrink-0 text-muted-foreground/70" />
                               )}
                             </SidebarMenuButton>
-                            <Tooltip>
-                              <TooltipTrigger
+                            <Menu>
+                              <MenuTrigger
                                 render={
                                   <SidebarMenuAction
                                     render={
@@ -1399,19 +1395,31 @@ export default function Sidebar() {
                                     onClick={(event) => {
                                       event.preventDefault();
                                       event.stopPropagation();
-                                      void handleNewThread(project.id);
                                     }}
                                   >
                                     <SquarePenIcon className="size-3.5" />
                                   </SidebarMenuAction>
                                 }
                               />
-                              <TooltipPopup side="top">
-                                {newThreadShortcutLabel
-                                  ? `New thread (${newThreadShortcutLabel})`
-                                  : "New thread"}
-                              </TooltipPopup>
-                            </Tooltip>
+                              <MenuPopup side="bottom" align="end" sideOffset={4}>
+                                <MenuItem
+                                  onClick={() => {
+                                    void handleNewThread(project.id);
+                                  }}
+                                >
+                                  <SquarePenIcon className="size-3.5" />
+                                  New Chat
+                                </MenuItem>
+                                <MenuItem
+                                  onClick={() => {
+                                    setThoughtPickerProjectId(project.id);
+                                  }}
+                                >
+                                  <LightbulbIcon className="size-3.5" />
+                                  New Thought
+                                </MenuItem>
+                              </MenuPopup>
+                            </Menu>
                           </div>
 
                           <CollapsibleContent keepMounted>
@@ -1510,6 +1518,9 @@ export default function Sidebar() {
                                               {prStatus.tooltip}
                                             </TooltipPopup>
                                           </Tooltip>
+                                        )}
+                                        {!prStatus && isThoughtBranch(thread.branch) && (
+                                          <LightbulbIcon className="size-3 shrink-0 text-amber-500" />
                                         )}
                                         {threadStatus && (
                                           <span
@@ -1691,6 +1702,19 @@ export default function Sidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      {thoughtPickerProject && (
+        <ThoughtBranchPicker
+          projectCwd={thoughtPickerProject.cwd}
+          open={thoughtPickerProjectId !== null}
+          onOpenChange={(open) => {
+            if (!open) setThoughtPickerProjectId(null);
+          }}
+          onConfirm={(baseBranch) => {
+            void startThoughtExercise(thoughtPickerProject.id, baseBranch);
+            setThoughtPickerProjectId(null);
+          }}
+        />
+      )}
     </>
   );
 }

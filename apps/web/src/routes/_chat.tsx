@@ -130,6 +130,14 @@ function ApprovalToast({
   );
 }
 
+function persistDismissedApprovals(set: Set<string>) {
+  try {
+    sessionStorage.setItem("arbor:dismissed-approval-toasts", JSON.stringify([...set]));
+  } catch {
+    // best-effort
+  }
+}
+
 /**
  * Hooks into the PR refresh cycle to perform lifecycle cleanup.
  * On every refresh, checks PR statuses for active worktrees and auto-cleans
@@ -146,8 +154,17 @@ function LifecycleCleanupWiring() {
   const [approvalToasts, setApprovalToasts] = useState<
     Array<{ sessionId: string; prNumber: number; repoSlug: string }>
   >([]);
-  // Track which PRs we've already shown the approval toast for
-  const shownApprovalRef = useRef<Set<string>>(new Set());
+  // Track which PRs we've already shown or dismissed the approval toast for.
+  // Persisted in sessionStorage so dismissals survive remounts/navigation.
+  const shownApprovalRef = useRef<Set<string>>(null);
+  if (shownApprovalRef.current === null) {
+    try {
+      const stored = sessionStorage.getItem("arbor:dismissed-approval-toasts");
+      shownApprovalRef.current = stored ? new Set(JSON.parse(stored) as string[]) : new Set();
+    } catch {
+      shownApprovalRef.current = new Set();
+    }
+  }
   // Track which PRs were auto-removed to show brief notices
   const [autoRemovedNotices, setAutoRemovedNotices] = useState<
     Array<{ prNumber: number; repoSlug: string; id: string }>
@@ -225,8 +242,9 @@ function LifecycleCleanupWiring() {
             }, 5000);
           } else if (action.action === "approved") {
             const key = `${action.repoSlug}#${action.prNumber}`;
-            if (!shownApprovalRef.current.has(key)) {
-              shownApprovalRef.current.add(key);
+            if (!shownApprovalRef.current!.has(key)) {
+              shownApprovalRef.current!.add(key);
+              persistDismissedApprovals(shownApprovalRef.current!);
               setApprovalToasts((prev) => [
                 ...prev,
                 {

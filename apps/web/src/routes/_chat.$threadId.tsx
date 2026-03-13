@@ -5,6 +5,7 @@ import { Suspense, lazy, type ReactNode, useCallback, useEffect, useMemo, useSta
 import { MessageSquareIcon, GitPullRequestIcon } from "lucide-react";
 
 import ChatView from "../components/ChatView";
+import { isThoughtBranch } from "../components/ChatView.logic";
 import { PRDiffViewer } from "../components/diff/PRDiffViewer";
 import { useComposerDraftStore } from "../composerDraftStore";
 import {
@@ -19,7 +20,13 @@ import { cn } from "~/lib/utils";
 import { Sheet, SheetPopup } from "../components/ui/sheet";
 import { Sidebar, SidebarInset, SidebarProvider, SidebarRail } from "~/components/ui/sidebar";
 
-const DiffPanel = lazy(() => import("../components/DiffPanel"));
+const DiffPanel = lazy(() =>
+  import("../components/DiffPanel").catch(() => {
+    // Vite may serve stale module URLs after HMR — reload to pick up fresh ones
+    window.location.reload();
+    return { default: () => null } as typeof import("../components/DiffPanel");
+  }),
+);
 const DIFF_INLINE_LAYOUT_MEDIA_QUERY = "(max-width: 1180px)";
 const DIFF_INLINE_SIDEBAR_WIDTH_STORAGE_KEY = "chat_diff_sidebar_width";
 const DIFF_INLINE_DEFAULT_WIDTH = "clamp(28rem,48vw,44rem)";
@@ -135,7 +142,7 @@ const DiffPanelInlineSidebar = (props: {
       defaultOpen={false}
       open={diffOpen}
       onOpenChange={onOpenChange}
-      className="w-auto min-h-0 flex-none bg-transparent"
+      className="h-auto w-auto min-h-0 flex-none bg-transparent"
       style={{ "--sidebar-width": DIFF_INLINE_DEFAULT_WIDTH } as React.CSSProperties}
     >
       <Sidebar
@@ -291,6 +298,15 @@ function ChatThreadRouteView() {
     setActiveTab("chat");
   }, [threadId]);
 
+  // Auto-open diff sidebar when a thought exercise produces file changes
+  const isThought = isThoughtBranch(activeThread?.branch ?? draftThread?.branch ?? null);
+  const hasDiffs = (activeThread?.turnDiffSummaries.length ?? 0) > 0;
+  useEffect(() => {
+    if (isThought && hasDiffs && !diffOpen) {
+      openDiff();
+    }
+  }, [isThought, hasDiffs, diffOpen, openDiff]);
+
   useEffect(() => {
     if (!threadsHydrated) {
       return;
@@ -324,7 +340,7 @@ function ChatThreadRouteView() {
   const chatContent = (
     <div className="flex h-full flex-col">
       {hasSession && <SessionTabBar activeTab="chat" onTabChange={switchTab} />}
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <ChatView key={threadId} threadId={threadId} />
       </div>
     </div>

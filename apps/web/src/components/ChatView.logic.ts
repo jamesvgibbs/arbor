@@ -7,6 +7,7 @@ import { Schema } from "effect";
 
 export const LAST_INVOKED_SCRIPT_BY_PROJECT_KEY = "arbor:last-invoked-script-by-project";
 const WORKTREE_BRANCH_PREFIX = "arbor";
+const THOUGHT_BRANCH_PREFIX = "thought";
 
 export const LastInvokedScriptByProjectSchema = Schema.Record(ProjectId, Schema.String);
 
@@ -98,6 +99,15 @@ export function buildTemporaryWorktreeBranchName(): string {
   // Keep the 8-hex suffix shape for backend temporary-branch detection.
   const token = randomUUID().slice(0, 8).toLowerCase();
   return `${WORKTREE_BRANCH_PREFIX}/${token}`;
+}
+
+export function buildThoughtBranchName(): string {
+  const token = randomUUID().slice(0, 8).toLowerCase();
+  return `${THOUGHT_BRANCH_PREFIX}/${token}`;
+}
+
+export function isThoughtBranch(branch: string | null): boolean {
+  return branch !== null && branch.startsWith(`${THOUGHT_BRANCH_PREFIX}/`);
 }
 
 export function cloneComposerImageForRetry(

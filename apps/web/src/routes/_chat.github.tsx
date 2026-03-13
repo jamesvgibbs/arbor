@@ -329,36 +329,8 @@ function GitHubRouteView() {
     try {
       const result = await lifecycleMutation.mutateAsync({ prStatuses });
 
-      for (const action of result.actions) {
-        if (action.action === "auto_removed") {
-          toastManager.add({
-            type: "info",
-            title: `PR #${action.prNumber} worktree auto-cleaned`,
-            description: `${action.repoSlug} — PR merged or closed`,
-          });
-        } else if (action.action === "approved") {
-          toastManager.add({
-            type: "success",
-            title: `PR #${action.prNumber} was approved`,
-            description: "Clean up worktree?",
-            actionProps: {
-              children: "Accept",
-              onClick: () => {
-                removeMutation.mutate(
-                  { sessionId: action.sessionId },
-                  {
-                    onSuccess: () => {
-                      toastManager.add({
-                        title: `Worktree cleaned for PR #${action.prNumber}`,
-                      });
-                    },
-                  },
-                );
-              },
-            },
-          });
-        }
-      }
+      // Lifecycle actions (auto_removed, approved) are handled silently —
+      // no toast notifications for cleanup prompts.
     } catch {
       // Non-blocking lifecycle check
     }
