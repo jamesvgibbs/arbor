@@ -11,3 +11,6 @@ export * from "./git";
 export * from "./orchestration";
 export * from "./editor";
 export * from "./project";
+export * from "./github";
+export * from "./worktree";
+export * from "./reviewContext";

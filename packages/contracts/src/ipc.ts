@@ -45,6 +45,35 @@ import type {
   OrchestrationEvent,
   OrchestrationReadModel,
 } from "./orchestration";
+import type {
+  GitHubAuthStatus,
+  GitHubAuthenticateResult,
+  GitHubPollAuthInput,
+  GitHubPollAuthResult,
+  GitHubRepoConfig,
+  GitHubAddRepoInput,
+  GitHubRemoveRepoInput,
+  GitHubPRListInput,
+  GitHubPRListResult,
+  GitHubPRDetailsInput,
+  GitHubRefreshInput,
+} from "./github";
+import type {
+  WorktreeCreateInput,
+  WorktreeCreateResult,
+  WorktreeListResult,
+  WorktreeRemoveInput,
+  WorktreeRemoveResult,
+  WorktreeGetDiskSizeInput,
+  WorktreeSettingsResult,
+  WorktreeUpdateSettingsInput,
+} from "./worktree";
+import type {
+  ReviewContextDetectInput,
+  ReviewContextDetectResult,
+  ReviewContextInitInput,
+  ReviewContextInitResult,
+} from "./reviewContext";
 import { EditorId } from "./editor";
 
 export interface ContextMenuItem<T extends string = string> {
@@ -169,5 +198,29 @@ export interface NativeApi {
     ) => Promise<OrchestrationGetFullThreadDiffResult>;
     replayEvents: (fromSequenceExclusive: number) => Promise<OrchestrationEvent[]>;
     onDomainEvent: (callback: (event: OrchestrationEvent) => void) => () => void;
+  };
+  github: {
+    getAuthStatus: () => Promise<GitHubAuthStatus>;
+    startAuth: () => Promise<GitHubAuthenticateResult>;
+    pollAuth: (input: GitHubPollAuthInput) => Promise<GitHubPollAuthResult>;
+    logout: () => Promise<void>;
+    listRepos: () => Promise<GitHubRepoConfig[]>;
+    addRepo: (input: GitHubAddRepoInput) => Promise<GitHubRepoConfig[]>;
+    removeRepo: (input: GitHubRemoveRepoInput) => Promise<GitHubRepoConfig[]>;
+    listPRs: (input: GitHubPRListInput) => Promise<GitHubPRListResult>;
+    getPRDetails: (input: GitHubPRDetailsInput) => Promise<any>;
+    refreshPRs: (input: GitHubRefreshInput) => Promise<GitHubPRListResult>;
+  };
+  worktree: {
+    create: (input: WorktreeCreateInput) => Promise<WorktreeCreateResult>;
+    list: () => Promise<WorktreeListResult>;
+    remove: (input: WorktreeRemoveInput) => Promise<WorktreeRemoveResult>;
+    getDiskSize: (input: WorktreeGetDiskSizeInput) => Promise<{ id: string; diskSizeMB: number }>;
+    getSettings: () => Promise<WorktreeSettingsResult>;
+    updateSettings: (input: WorktreeUpdateSettingsInput) => Promise<WorktreeSettingsResult>;
+  };
+  reviewContext: {
+    detect: (input: ReviewContextDetectInput) => Promise<ReviewContextDetectResult>;
+    init: (input: ReviewContextInitInput) => Promise<ReviewContextInitResult>;
   };
 }

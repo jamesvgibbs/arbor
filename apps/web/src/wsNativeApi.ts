@@ -1,4 +1,7 @@
 import {
+  GITHUB_WS_METHODS,
+  WORKTREE_WS_METHODS,
+  REVIEW_CONTEXT_WS_METHODS,
   ORCHESTRATION_WS_CHANNELS,
   ORCHESTRATION_WS_METHODS,
   type ContextMenuItem,
@@ -7,7 +10,7 @@ import {
   WS_CHANNELS,
   WS_METHODS,
   type WsWelcomePayload,
-} from "@t3tools/contracts";
+} from "@arbortools/contracts";
 
 import { showContextMenuFallback } from "./contextMenuFallback";
 import { WsTransport } from "./wsTransport";
@@ -174,6 +177,30 @@ export function createWsNativeApi(): NativeApi {
         transport.subscribe(ORCHESTRATION_WS_CHANNELS.domainEvent, (message) =>
           callback(message.data),
         ),
+    },
+    github: {
+      getAuthStatus: () => transport.request(GITHUB_WS_METHODS.getAuthStatus),
+      startAuth: () => transport.request(GITHUB_WS_METHODS.startAuth),
+      pollAuth: (input) => transport.request(GITHUB_WS_METHODS.pollAuth, input),
+      logout: () => transport.request(GITHUB_WS_METHODS.logout),
+      listRepos: () => transport.request(GITHUB_WS_METHODS.listRepos),
+      addRepo: (input) => transport.request(GITHUB_WS_METHODS.addRepo, input),
+      removeRepo: (input) => transport.request(GITHUB_WS_METHODS.removeRepo, input),
+      listPRs: (input) => transport.request(GITHUB_WS_METHODS.listPRs, input),
+      getPRDetails: (input) => transport.request(GITHUB_WS_METHODS.getPRDetails, input),
+      refreshPRs: (input) => transport.request(GITHUB_WS_METHODS.refreshPRs, input),
+    },
+    worktree: {
+      create: (input) => transport.request(WORKTREE_WS_METHODS.create, input),
+      list: () => transport.request(WORKTREE_WS_METHODS.list),
+      remove: (input) => transport.request(WORKTREE_WS_METHODS.remove, input),
+      getDiskSize: (input) => transport.request(WORKTREE_WS_METHODS.getDiskSize, input),
+      getSettings: () => transport.request(WORKTREE_WS_METHODS.getSettings),
+      updateSettings: (input) => transport.request(WORKTREE_WS_METHODS.updateSettings, input),
+    },
+    reviewContext: {
+      detect: (input) => transport.request(REVIEW_CONTEXT_WS_METHODS.detect, input),
+      init: (input) => transport.request(REVIEW_CONTEXT_WS_METHODS.init, input),
     },
   };
 

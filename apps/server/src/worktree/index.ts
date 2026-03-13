@@ -7,4 +7,13 @@
  * @module WorktreeContext
  */
 
-export {};
+export { WorktreeManager } from "./WorktreeManager";
+export { WorktreeService } from "./WorktreeService";
+export { WorktreeStore } from "./WorktreeStore";
+export type {
+  WorktreeSession,
+  WorktreeCreateInput,
+  WorktreeCreateResult,
+  WorktreeListResult,
+  WorktreeRemoveResult,
+} from "./types";

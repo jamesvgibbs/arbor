@@ -37,6 +37,27 @@ import { KeybindingRule } from "./keybindings";
 import { ProjectSearchEntriesInput, ProjectWriteFileInput } from "./project";
 import { OpenInEditorInput } from "./editor";
 import { ServerConfigUpdatedPayload } from "./server";
+import {
+  GITHUB_WS_METHODS,
+  GitHubPollAuthInput,
+  GitHubAddRepoInput,
+  GitHubRemoveRepoInput,
+  GitHubPRListInput,
+  GitHubPRDetailsInput,
+  GitHubRefreshInput,
+} from "./github";
+import {
+  WORKTREE_WS_METHODS,
+  WorktreeCreateInput as WorktreeCreateInputSchema,
+  WorktreeRemoveInput as WorktreeRemoveInputSchema,
+  WorktreeGetDiskSizeInput as WorktreeGetDiskSizeInputSchema,
+  WorktreeUpdateSettingsInput as WorktreeUpdateSettingsInputSchema,
+} from "./worktree";
+import {
+  REVIEW_CONTEXT_WS_METHODS,
+  ReviewContextDetectInput as ReviewContextDetectInputSchema,
+  ReviewContextInitInput as ReviewContextInitInputSchema,
+} from "./reviewContext";
 
 // ── WebSocket RPC Method Names ───────────────────────────────────────
 
@@ -135,6 +156,30 @@ const WebSocketRequestBody = Schema.Union([
   tagRequestBody(WS_METHODS.terminalClear, TerminalClearInput),
   tagRequestBody(WS_METHODS.terminalRestart, TerminalRestartInput),
   tagRequestBody(WS_METHODS.terminalClose, TerminalCloseInput),
+
+  // GitHub methods
+  tagRequestBody(GITHUB_WS_METHODS.getAuthStatus, Schema.Struct({})),
+  tagRequestBody(GITHUB_WS_METHODS.startAuth, Schema.Struct({})),
+  tagRequestBody(GITHUB_WS_METHODS.pollAuth, GitHubPollAuthInput),
+  tagRequestBody(GITHUB_WS_METHODS.logout, Schema.Struct({})),
+  tagRequestBody(GITHUB_WS_METHODS.listRepos, Schema.Struct({})),
+  tagRequestBody(GITHUB_WS_METHODS.addRepo, GitHubAddRepoInput),
+  tagRequestBody(GITHUB_WS_METHODS.removeRepo, GitHubRemoveRepoInput),
+  tagRequestBody(GITHUB_WS_METHODS.listPRs, GitHubPRListInput),
+  tagRequestBody(GITHUB_WS_METHODS.getPRDetails, GitHubPRDetailsInput),
+  tagRequestBody(GITHUB_WS_METHODS.refreshPRs, GitHubRefreshInput),
+
+  // Worktree methods
+  tagRequestBody(WORKTREE_WS_METHODS.create, WorktreeCreateInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.list, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.remove, WorktreeRemoveInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.getDiskSize, WorktreeGetDiskSizeInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.getSettings, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.updateSettings, WorktreeUpdateSettingsInputSchema),
+
+  // Review Context methods
+  tagRequestBody(REVIEW_CONTEXT_WS_METHODS.detect, ReviewContextDetectInputSchema),
+  tagRequestBody(REVIEW_CONTEXT_WS_METHODS.init, ReviewContextInitInputSchema),
 
   // Server meta
   tagRequestBody(WS_METHODS.serverGetConfig, Schema.Struct({})),

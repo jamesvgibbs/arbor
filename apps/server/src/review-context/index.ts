@@ -7,4 +7,6 @@
  * @module ReviewContextContext
  */
 
-export {};
+export { ReviewContextManager } from "./ReviewContextManager";
+export { ReviewContextService } from "./ReviewContextService";
+export type { PRHeaderDetails } from "./ReviewContextService";
