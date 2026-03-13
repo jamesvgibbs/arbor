@@ -1,6 +1,6 @@
 import { type ResolvedKeybindingsConfig } from "@arbortools/contracts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DiffWorkerPoolProvider } from "../components/DiffWorkerPoolProvider";
@@ -290,6 +290,8 @@ function LifecycleCleanupWiring() {
 
 function ChatRouteLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isReviewRoute = location.pathname.startsWith("/review/");
 
   useEffect(() => {
     const onMenuAction = window.desktopBridge?.onMenuAction;
@@ -310,7 +312,7 @@ function ChatRouteLayout() {
   return (
     <SidebarProvider defaultOpen>
       <ChatRouteGlobalShortcuts />
-      <LifecycleCleanupWiring />
+      {!isReviewRoute && <LifecycleCleanupWiring />}
       <Sidebar
         side="left"
         collapsible="offcanvas"

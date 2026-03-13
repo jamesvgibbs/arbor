@@ -4,6 +4,7 @@
 
 - All of `bun fmt`, `bun lint`, and `bun typecheck` must pass before considering tasks completed.
 - NEVER run `bun test`. Always use `bun run test` (runs Vitest).
+- Use `bun` instead of `npx` or `npm` for running scripts and commands (e.g., `bun run typecheck` not `npx tsc`).
 
 ## Project Snapshot
 

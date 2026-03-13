@@ -1633,24 +1633,18 @@ it.layer(TestLayer)("git integration", (it) => {
         }),
     );
 
-    it.effect("includes command context when worktree removal fails", () =>
+    it.effect("falls back to prune when worktree path does not exist", () =>
       Effect.gen(function* () {
         const tmp = yield* makeTmpDir();
         yield* initRepoWithCommit(tmp);
         const core = yield* GitCore;
         const missingWorktreePath = path.join(tmp, "missing-worktree");
 
+        // Should succeed by falling back to `git worktree prune`
         const removeResult = yield* Effect.result(
           core.removeWorktree({ cwd: tmp, path: missingWorktreePath }),
         );
-        expect(removeResult._tag).toBe("Failure");
-        if (removeResult._tag !== "Failure") {
-          return;
-        }
-        const message = removeResult.failure.message;
-        expect(message).toContain("git worktree remove");
-        expect(message).toContain(`cwd: ${tmp}`);
-        expect(message).toContain(missingWorktreePath);
+        expect(removeResult._tag).toBe("Success");
       }),
     );
 

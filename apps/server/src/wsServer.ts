@@ -20,6 +20,7 @@ import {
   GITHUB_WS_METHODS,
   WORKTREE_WS_METHODS,
   REVIEW_CONTEXT_WS_METHODS,
+  DIFF_WS_METHODS,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   ProjectId,
   ThreadId,
@@ -81,6 +82,7 @@ import { expandHomePath } from "./os-jank.ts";
 import { GitHubManager } from "./github/GitHubManager.ts";
 import { WorktreeManager } from "./worktree/WorktreeManager.ts";
 import { ReviewContextManager } from "./review-context/ReviewContextManager.ts";
+import { DiffService } from "./diff/DiffService.ts";
 import { makeServerPushBus } from "./wsServer/pushBus.ts";
 import { makeServerReadiness } from "./wsServer/readiness.ts";
 import { decodeJsonResult, formatSchemaError } from "@arbortools/shared/schemaJson";
@@ -267,6 +269,7 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
   const githubManager = new GitHubManager(arborConfigDir);
   const worktreeManager = new WorktreeManager(arborConfigDir);
   const reviewContextManager = new ReviewContextManager();
+  const diffService = new DiffService(githubManager);
 
   const gitManager = yield* GitManager;
   const terminalManager = yield* TerminalManager;
@@ -974,6 +977,14 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         });
       }
 
+      case GITHUB_WS_METHODS.submitReview: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => githubManager.submitReview(body.owner, body.repo, body.prNumber, body.body, body.event),
+          catch: (cause) => new RouteRequestError({ message: `Failed to submit review: ${String(cause)}` }),
+        });
+      }
+
       // ── Worktree methods ───────────────────────────────────────────
       case WORKTREE_WS_METHODS.create: {
         const body = stripRequestTag(request.body);
@@ -1089,6 +1100,23 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         return yield* Effect.tryPromise({
           try: () => reviewContextManager.init({ ...body, skipInit: body.skipInit ?? false }),
           catch: (cause) => new RouteRequestError({ message: `Failed to init review context: ${String(cause)}` }),
+        });
+      }
+
+      // ── Diff methods ────────────────────────────────────────────────
+      case DIFF_WS_METHODS.getChangedFiles: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => diffService.getChangedFiles(body.owner, body.repo, body.prNumber),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get changed files: ${String(cause)}` }),
+        });
+      }
+
+      case DIFF_WS_METHODS.getLocalDiff: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => diffService.getLocalDiff(body.worktreePath, body.baseBranch, body.filename),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get local diff: ${String(cause)}` }),
         });
       }
 

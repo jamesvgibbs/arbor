@@ -1,8 +1,11 @@
-import { ThreadId } from "@arbortools/contracts";
+import { ThreadId, type WorktreeSessionWithSize } from "@arbortools/contracts";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, retainSearchParams, useNavigate } from "@tanstack/react-router";
-import { Suspense, lazy, type ReactNode, useCallback, useEffect } from "react";
+import { Suspense, lazy, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { MessageSquareIcon, GitPullRequestIcon } from "lucide-react";
 
 import ChatView from "../components/ChatView";
+import { PRDiffViewer } from "../components/diff/PRDiffViewer";
 import { useComposerDraftStore } from "../composerDraftStore";
 import {
   type DiffRouteSearch,
@@ -11,6 +14,8 @@ import {
 } from "../diffRouteSearch";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useStore } from "../store";
+import { worktreeListQueryOptions } from "../lib/worktreeReactQuery";
+import { cn } from "~/lib/utils";
 import { Sheet, SheetPopup } from "../components/ui/sheet";
 import { Sidebar, SidebarInset, SidebarProvider, SidebarRail } from "~/components/ui/sidebar";
 
@@ -152,6 +157,45 @@ const DiffPanelInlineSidebar = (props: {
   );
 };
 
+function SessionTabBar({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: "chat" | "prdiff";
+  onTabChange: (tab: "chat" | "prdiff") => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-1 border-b border-border bg-card px-3">
+      <button
+        type="button"
+        onClick={() => onTabChange("chat")}
+        className={cn(
+          "inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors",
+          activeTab === "chat"
+            ? "border-primary text-foreground"
+            : "border-transparent text-muted-foreground hover:text-foreground",
+        )}
+      >
+        <MessageSquareIcon className="size-3.5" />
+        Chat
+      </button>
+      <button
+        type="button"
+        onClick={() => onTabChange("prdiff")}
+        className={cn(
+          "inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors",
+          activeTab === "prdiff"
+            ? "border-primary text-foreground"
+            : "border-transparent text-muted-foreground hover:text-foreground",
+        )}
+      >
+        <GitPullRequestIcon className="size-3.5" />
+        Diff
+      </button>
+    </div>
+  );
+}
+
 function ChatThreadRouteView() {
   const threadsHydrated = useStore((store) => store.threadsHydrated);
   const navigate = useNavigate();
@@ -164,6 +208,37 @@ function ChatThreadRouteView() {
     Object.hasOwn(store.draftThreadsByThreadId, threadId),
   );
   const routeThreadExists = threadExists || draftThreadExists;
+  const activeThread = useStore((store) =>
+    store.threads.find((thread) => thread.id === threadId),
+  );
+  const draftThread = useComposerDraftStore((store) =>
+    store.draftThreadsByThreadId[threadId] ?? null,
+  );
+  const worktreePath = activeThread?.worktreePath ?? draftThread?.worktreePath ?? null;
+
+  // Find the worktree session matching this thread
+  const worktreeListQuery = useQuery({
+    ...worktreeListQueryOptions(),
+    // Ensure we have fresh data when a worktree thread is active
+    enabled: worktreePath !== null,
+  });
+  const matchingSession: WorktreeSessionWithSize | null = useMemo(() => {
+    if (!worktreePath || !worktreeListQuery.data) return null;
+    return (
+      worktreeListQuery.data.sessions.find(
+        (s) => s.worktreePath === worktreePath,
+      ) ?? null
+    );
+  }, [worktreePath, worktreeListQuery.data]);
+
+  const hasSession = matchingSession !== null;
+
+  // Tab state — kept as React state, not URL, to avoid interfering with diff search params
+  const [activeTab, setActiveTab] = useState<"chat" | "prdiff">("chat");
+
+  // Pending "Ask Claude" prompt to pre-fill when switching back to Chat
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
   const diffOpen = search.diff === "1";
   const shouldUseDiffSheet = useMediaQuery(DIFF_INLINE_LAYOUT_MEDIA_QUERY);
   const closeDiff = useCallback(() => {
@@ -184,6 +259,38 @@ function ChatThreadRouteView() {
     });
   }, [navigate, threadId]);
 
+  const switchTab = useCallback(
+    (tab: "chat" | "prdiff") => {
+      setActiveTab(tab);
+    },
+    [],
+  );
+
+  const handleAskClaude = useCallback(
+    (prompt: string) => {
+      setPendingPrompt(prompt);
+      setActiveTab("chat");
+    },
+    [],
+  );
+
+  // Clear pending prompt once we've switched to chat tab and it's been consumed
+  useEffect(() => {
+    if (activeTab === "chat" && pendingPrompt) {
+      window.dispatchEvent(
+        new CustomEvent("arbor:prefill-composer", {
+          detail: { prompt: pendingPrompt },
+        }),
+      );
+      setPendingPrompt(null);
+    }
+  }, [activeTab, pendingPrompt]);
+
+  // Reset tab when switching threads
+  useEffect(() => {
+    setActiveTab("chat");
+  }, [threadId]);
+
   useEffect(() => {
     if (!threadsHydrated) {
       return;
@@ -199,11 +306,35 @@ function ChatThreadRouteView() {
     return null;
   }
 
+  // PR Diff tab view (full screen, no turn diff sidebar)
+  if (activeTab === "prdiff" && matchingSession) {
+    return (
+      <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none bg-background text-foreground">
+        <div className="flex h-full flex-col">
+          <SessionTabBar activeTab={activeTab} onTabChange={switchTab} />
+          <div className="min-h-0 flex-1">
+            <PRDiffViewer session={matchingSession} onAskClaude={handleAskClaude} />
+          </div>
+        </div>
+      </SidebarInset>
+    );
+  }
+
+  // Chat tab view (with optional turn diff sidebar/sheet)
+  const chatContent = (
+    <div className="flex h-full flex-col">
+      {hasSession && <SessionTabBar activeTab="chat" onTabChange={switchTab} />}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <ChatView key={threadId} threadId={threadId} />
+      </div>
+    </div>
+  );
+
   if (!shouldUseDiffSheet) {
     return (
       <>
         <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none bg-background text-foreground">
-          <ChatView key={threadId} threadId={threadId} />
+          {chatContent}
         </SidebarInset>
         <DiffPanelInlineSidebar diffOpen={diffOpen} onCloseDiff={closeDiff} onOpenDiff={openDiff} />
       </>
@@ -213,7 +344,7 @@ function ChatThreadRouteView() {
   return (
     <>
       <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none bg-background text-foreground">
-        <ChatView key={threadId} threadId={threadId} />
+        {chatContent}
       </SidebarInset>
       <DiffPanelSheet diffOpen={diffOpen} onCloseDiff={closeDiff}>
         <Suspense fallback={<DiffLoadingFallback inline={false} />}>

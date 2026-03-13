@@ -114,6 +114,17 @@ export const GitHubRefreshInput = Schema.Struct({
 });
 export type GitHubRefreshInput = typeof GitHubRefreshInput.Type;
 
+// ── Submit Review ────────────────────────────────────────────────────
+
+export const GitHubSubmitReviewInput = Schema.Struct({
+  owner: Schema.String,
+  repo: Schema.String,
+  prNumber: Schema.Number,
+  body: Schema.String,
+  event: Schema.Literal("APPROVE", "COMMENT", "REQUEST_CHANGES"),
+});
+export type GitHubSubmitReviewInput = typeof GitHubSubmitReviewInput.Type;
+
 // ── WS Method names ──────────────────────────────────────────────────
 
 export const GITHUB_WS_METHODS = {
@@ -127,4 +138,5 @@ export const GITHUB_WS_METHODS = {
   listPRs: "github.listPRs",
   getPRDetails: "github.getPRDetails",
   refreshPRs: "github.refreshPRs",
+  submitReview: "github.submitReview",
 } as const;

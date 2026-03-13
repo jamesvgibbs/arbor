@@ -3,6 +3,7 @@ import { GitHubService } from "./GitHubService";
 import { RepoStore } from "./RepoStore";
 import { TokenStore } from "./TokenStore";
 import { PRCache } from "./PRCache";
+import type { GitHubPRFileResponse } from "./GitHubService";
 import type { PRCard, PRDetails, RepoConfig } from "./types";
 
 const GITHUB_CLIENT_ID =
@@ -153,6 +154,27 @@ export class GitHubManager {
   ): Promise<PRDetails> {
     const service = await this.getGitHubService();
     return service.getPRDetails(owner, repo, number);
+  }
+
+  async listPRFiles(
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<GitHubPRFileResponse[]> {
+    const service = await this.getGitHubService();
+    return service.listPRFiles(owner, repo, prNumber);
+  }
+
+  async submitReview(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    body: string,
+    event: "APPROVE" | "COMMENT" | "REQUEST_CHANGES",
+  ): Promise<{ ok: true }> {
+    const service = await this.getGitHubService();
+    await service.submitReview(owner, repo, prNumber, body, event);
+    return { ok: true };
   }
 
   async refreshPRs(

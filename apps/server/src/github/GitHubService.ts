@@ -139,11 +139,78 @@ export class GitHubService {
   }
 
   /**
+   * List files changed in a pull request, handling pagination.
+   */
+  async listPRFiles(
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<GitHubPRFileResponse[]> {
+    const perPage = 100;
+    let page = 1;
+    const allFiles: GitHubPRFileResponse[] = [];
+
+    while (true) {
+      const batch = await this.get<GitHubPRFileResponse[]>(
+        `/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=${perPage}&page=${page}`,
+      );
+
+      allFiles.push(...batch);
+
+      if (batch.length < perPage) break;
+      page++;
+    }
+
+    return allFiles;
+  }
+
+  /**
+   * Submit a review on a pull request.
+   */
+  async submitReview(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    body: string,
+    event: "APPROVE" | "COMMENT" | "REQUEST_CHANGES",
+  ): Promise<void> {
+    await this.post(
+      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+      { body, event },
+    );
+  }
+
+  /**
    * Perform a GET request against the GitHub API.
    */
   private async get<T>(path: string): Promise<T> {
     const url = `${GITHUB_API_BASE}${path}`;
     const res = await fetch(url, { headers: this.headers });
+
+    const rateLimit = extractRateLimit(res);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new GitHubApiError(
+        `GitHub API error: ${res.status} ${res.statusText} - ${text}`,
+        res.status,
+        rateLimit,
+      );
+    }
+
+    return (await res.json()) as T;
+  }
+
+  /**
+   * Perform a POST request against the GitHub API.
+   */
+  private async post<T = unknown>(path: string, data: unknown): Promise<T> {
+    const url = `${GITHUB_API_BASE}${path}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { ...this.headers, "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
     const rateLimit = extractRateLimit(res);
 
@@ -166,6 +233,17 @@ export class GitHubService {
 
 type CIStatus = PRCard["ciStatus"];
 type ReviewStatus = PRCard["reviewStatus"];
+
+export interface GitHubPRFileResponse {
+  sha: string;
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch?: string;
+  previous_filename?: string;
+}
 
 interface GitHubPullResponse {
   number: number;

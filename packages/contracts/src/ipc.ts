@@ -83,6 +83,12 @@ import type {
   ReviewContextInitInput,
   ReviewContextInitResult,
 } from "./reviewContext";
+import type {
+  DiffGetChangedFilesInput,
+  DiffGetChangedFilesResult,
+  DiffGetLocalDiffInput,
+  DiffGetLocalDiffResult,
+} from "./diff";
 import { EditorId } from "./editor";
 
 export interface ContextMenuItem<T extends string = string> {
@@ -239,5 +245,9 @@ export interface NativeApi {
   reviewContext: {
     detect: (input: ReviewContextDetectInput) => Promise<ReviewContextDetectResult>;
     init: (input: ReviewContextInitInput) => Promise<ReviewContextInitResult>;
+  };
+  diff: {
+    getChangedFiles: (input: DiffGetChangedFilesInput) => Promise<DiffGetChangedFilesResult>;
+    getLocalDiff: (input: DiffGetLocalDiffInput) => Promise<DiffGetLocalDiffResult>;
   };
 }

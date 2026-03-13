@@ -129,3 +129,19 @@ export function githubRefreshPRsMutationOptions(input: { queryClient: QueryClien
     },
   });
 }
+
+export function githubSubmitReviewMutationOptions() {
+  return mutationOptions({
+    mutationKey: ["github", "submitReview"] as const,
+    mutationFn: async (params: {
+      owner: string;
+      repo: string;
+      prNumber: number;
+      body: string;
+      event: "APPROVE" | "COMMENT" | "REQUEST_CHANGES";
+    }) => {
+      const api = ensureNativeApi();
+      return api.github.submitReview(params);
+    },
+  });
+}
