@@ -135,6 +135,44 @@ export const WorktreeOpenInIDEInput = Schema.Struct({
 });
 export type WorktreeOpenInIDEInput = typeof WorktreeOpenInIDEInput.Type;
 
+// ── Health Check ───────────────────────────────────────────────────
+
+export const HealthCheckResult = Schema.Struct({
+  git: Schema.Struct({
+    status: Schema.Literals(["ok", "missing"]),
+    version: Schema.NullOr(Schema.String),
+  }),
+  claudeCode: Schema.Struct({
+    status: Schema.Literals(["ok", "missing"]),
+    version: Schema.NullOr(Schema.String),
+  }),
+  github: Schema.Struct({
+    status: Schema.Literals(["ok", "not_configured", "invalid"]),
+    username: Schema.NullOr(Schema.String),
+  }),
+  ide: Schema.Struct({
+    status: Schema.Literals(["ok", "not_configured", "missing"]),
+    name: Schema.NullOr(Schema.String),
+  }),
+});
+export type HealthCheckResult = typeof HealthCheckResult.Type;
+
+// ── Arbor Settings ─────────────────────────────────────────────────
+
+export const ArborSettingsResult = Schema.Struct({
+  basePath: Schema.String,
+  cleanupBehavior: Schema.Literals(["prompt", "manual"]),
+  refreshIntervalMs: Schema.Number,
+});
+export type ArborSettingsResult = typeof ArborSettingsResult.Type;
+
+export const ArborUpdateSettingsInput = Schema.Struct({
+  basePath: Schema.optional(Schema.String),
+  cleanupBehavior: Schema.optional(Schema.Literals(["prompt", "manual"])),
+  refreshIntervalMs: Schema.optional(Schema.Number),
+});
+export type ArborUpdateSettingsInput = typeof ArborUpdateSettingsInput.Type;
+
 // ── WS Method names ─────────────────────────────────────────────────
 
 export const WORKTREE_WS_METHODS = {
@@ -149,4 +187,7 @@ export const WORKTREE_WS_METHODS = {
   getIDESettings: "worktree.getIDESettings",
   updateIDESettings: "worktree.updateIDESettings",
   openInIDE: "worktree.openInIDE",
+  healthCheck: "worktree.healthCheck",
+  getArborSettings: "worktree.getArborSettings",
+  updateArborSettings: "worktree.updateArborSettings",
 } as const;

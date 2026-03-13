@@ -10,6 +10,8 @@ import {
   ExternalLinkIcon,
   UserIcon,
   AlertTriangleIcon,
+  FolderOpenIcon,
+  InfoIcon,
 } from "lucide-react";
 import { MAX_CUSTOM_MODEL_LENGTH, useAppSettings } from "../appSettings";
 import { resolveAndPersistPreferredEditor } from "../editorPreferences";
@@ -28,6 +30,8 @@ import {
 import {
   ideSettingsQueryOptions,
   ideUpdateSettingsMutationOptions,
+  arborSettingsQueryOptions,
+  arborUpdateSettingsMutationOptions,
 } from "../lib/worktreeReactQuery";
 import { ensureNativeApi } from "../nativeApi";
 import { Button } from "../components/ui/button";
@@ -453,6 +457,125 @@ function IDESettingsSection() {
   );
 }
 
+const REFRESH_INTERVAL_OPTIONS = [
+  { value: 60_000, label: "1 minute" },
+  { value: 300_000, label: "5 minutes" },
+  { value: 900_000, label: "15 minutes" },
+  { value: 0, label: "Manual only" },
+] as const;
+
+function WorktreeSettingsSection() {
+  const queryClient = useQueryClient();
+  const settingsQuery = useQuery(arborSettingsQueryOptions());
+  const updateMutation = useMutation(arborUpdateSettingsMutationOptions({ queryClient }));
+  const [basePathNotice, setBasePathNotice] = useState(false);
+
+  const basePath = settingsQuery.data?.basePath ?? "";
+  const cleanupBehavior = settingsQuery.data?.cleanupBehavior ?? "prompt";
+
+  const handlePickFolder = useCallback(async () => {
+    const api = ensureNativeApi();
+    const folder = await api.dialogs.pickFolder();
+    if (folder) {
+      updateMutation.mutate({ basePath: folder });
+      setBasePathNotice(true);
+    }
+  }, [updateMutation]);
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-5">
+      <div className="mb-4">
+        <h2 className="text-sm font-medium text-foreground">Worktrees</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Configure where worktrees are created and cleanup behavior.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-foreground">Base path</p>
+          <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
+              <FolderOpenIcon className="size-3.5 shrink-0 text-muted-foreground" />
+              <code className="min-w-0 flex-1 truncate text-xs text-foreground">
+                {basePath || "Loading..."}
+              </code>
+            </div>
+            <Button size="sm" variant="outline" onClick={handlePickFolder}>
+              Change
+            </Button>
+          </div>
+          {basePathNotice && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+              <InfoIcon className="size-3 shrink-0" />
+              New base path applies to future worktrees only.
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
+          <div>
+            <p className="text-sm font-medium text-foreground">Prompt when closing a session</p>
+            <p className="text-xs text-muted-foreground">
+              When enabled, you'll be asked to confirm before cleaning up a worktree.
+            </p>
+          </div>
+          <Switch
+            checked={cleanupBehavior === "prompt"}
+            onCheckedChange={(checked) =>
+              updateMutation.mutate({
+                cleanupBehavior: checked ? "prompt" : "manual",
+              })
+            }
+            aria-label="Prompt when closing a session"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PRListSettingsSection() {
+  const queryClient = useQueryClient();
+  const settingsQuery = useQuery(arborSettingsQueryOptions());
+  const updateMutation = useMutation(arborUpdateSettingsMutationOptions({ queryClient }));
+
+  const refreshIntervalMs = settingsQuery.data?.refreshIntervalMs ?? 300_000;
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-5">
+      <div className="mb-4">
+        <h2 className="text-sm font-medium text-foreground">PR List</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Control how often pull request data is refreshed from GitHub.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-foreground">Refresh interval</p>
+        <select
+          value={refreshIntervalMs}
+          onChange={(e) => {
+            updateMutation.mutate({ refreshIntervalMs: Number(e.target.value) });
+          }}
+          className="h-8 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-xs/5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/24"
+        >
+          {REFRESH_INTERVAL_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          {refreshIntervalMs === 0
+            ? "PR list will only refresh when you manually trigger it."
+            : "Changes take effect immediately."}
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function SettingsRouteView() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { settings, defaults, updateSettings } = useAppSettings();
@@ -581,6 +704,10 @@ function SettingsRouteView() {
             <GitHubSettingsSection />
 
             <IDESettingsSection />
+
+            <WorktreeSettingsSection />
+
+            <PRListSettingsSection />
 
             <section className="rounded-2xl border border-border bg-card p-5">
               <div className="mb-4">

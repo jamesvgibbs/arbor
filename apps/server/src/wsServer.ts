@@ -1055,6 +1055,26 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         });
       }
 
+      case WORKTREE_WS_METHODS.healthCheck:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.healthCheck(),
+          catch: (cause) => new RouteRequestError({ message: `Health check failed: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.getArborSettings:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.getArborSettings(),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get Arbor settings: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.updateArborSettings: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.updateArborSettings(body),
+          catch: (cause) => new RouteRequestError({ message: `Failed to update Arbor settings: ${String(cause)}` }),
+        });
+      }
+
       // ── Review Context methods ──────────────────────────────────────
       case REVIEW_CONTEXT_WS_METHODS.detect: {
         const body = stripRequestTag(request.body);

@@ -10,6 +10,9 @@ import type {
   IDESettingsResult,
   IDEUpdateSettingsInput,
   WorktreeOpenInIDEInput,
+  HealthCheckResult,
+  ArborSettingsResult,
+  ArborUpdateSettingsInput,
 } from "@arbortools/contracts";
 import { queryOptions, mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { ensureNativeApi } from "../nativeApi";
@@ -20,6 +23,8 @@ export const worktreeQueryKeys = {
   settings: () => ["worktree", "settings"] as const,
   ideDetection: () => ["worktree", "ideDetection"] as const,
   ideSettings: () => ["worktree", "ideSettings"] as const,
+  healthCheck: () => ["worktree", "healthCheck"] as const,
+  arborSettings: () => ["worktree", "arborSettings"] as const,
 };
 
 export function worktreeListQueryOptions() {
@@ -141,6 +146,47 @@ export function ideOpenInIDEMutationOptions() {
     mutationFn: async (params: WorktreeOpenInIDEInput): Promise<void> => {
       const api = ensureNativeApi();
       return api.worktree.openInIDE(params);
+    },
+  });
+}
+
+// ── Health Check ────────────────────────────────────────────────────
+
+export function healthCheckQueryOptions() {
+  return queryOptions({
+    queryKey: worktreeQueryKeys.healthCheck(),
+    queryFn: async (): Promise<HealthCheckResult> => {
+      const api = ensureNativeApi();
+      return api.worktree.healthCheck();
+    },
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+// ── Arbor Settings (unified) ────────────────────────────────────────
+
+export function arborSettingsQueryOptions() {
+  return queryOptions({
+    queryKey: worktreeQueryKeys.arborSettings(),
+    queryFn: async (): Promise<ArborSettingsResult> => {
+      const api = ensureNativeApi();
+      return api.worktree.getArborSettings();
+    },
+    staleTime: Infinity,
+  });
+}
+
+export function arborUpdateSettingsMutationOptions(input: { queryClient: QueryClient }) {
+  return mutationOptions({
+    mutationKey: ["worktree", "updateArborSettings"] as const,
+    mutationFn: async (params: ArborUpdateSettingsInput): Promise<ArborSettingsResult> => {
+      const api = ensureNativeApi();
+      return api.worktree.updateArborSettings(params);
+    },
+    onSuccess: async () => {
+      await input.queryClient.invalidateQueries({ queryKey: worktreeQueryKeys.arborSettings() });
+      await input.queryClient.invalidateQueries({ queryKey: worktreeQueryKeys.settings() });
     },
   });
 }

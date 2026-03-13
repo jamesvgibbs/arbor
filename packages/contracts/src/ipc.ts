@@ -73,6 +73,9 @@ import type {
   IDESettingsResult,
   IDEUpdateSettingsInput,
   WorktreeOpenInIDEInput,
+  HealthCheckResult,
+  ArborSettingsResult,
+  ArborUpdateSettingsInput,
 } from "./worktree";
 import type {
   ReviewContextDetectInput,
@@ -229,6 +232,9 @@ export interface NativeApi {
     getIDESettings: () => Promise<IDESettingsResult>;
     updateIDESettings: (input: IDEUpdateSettingsInput) => Promise<IDESettingsResult>;
     openInIDE: (input: WorktreeOpenInIDEInput) => Promise<void>;
+    healthCheck: () => Promise<HealthCheckResult>;
+    getArborSettings: () => Promise<ArborSettingsResult>;
+    updateArborSettings: (input: ArborUpdateSettingsInput) => Promise<ArborSettingsResult>;
   };
   reviewContext: {
     detect: (input: ReviewContextDetectInput) => Promise<ReviewContextDetectResult>;

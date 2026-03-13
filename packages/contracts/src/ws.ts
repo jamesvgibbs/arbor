@@ -55,6 +55,7 @@ import {
   WorktreeCheckLifecycleInput as WorktreeCheckLifecycleInputSchema,
   IDEUpdateSettingsInput as IDEUpdateSettingsInputSchema,
   WorktreeOpenInIDEInput as WorktreeOpenInIDEInputSchema,
+  ArborUpdateSettingsInput as ArborUpdateSettingsInputSchema,
 } from "./worktree";
 import {
   REVIEW_CONTEXT_WS_METHODS,
@@ -184,6 +185,9 @@ const WebSocketRequestBody = Schema.Union([
   tagRequestBody(WORKTREE_WS_METHODS.getIDESettings, Schema.Struct({})),
   tagRequestBody(WORKTREE_WS_METHODS.updateIDESettings, IDEUpdateSettingsInputSchema),
   tagRequestBody(WORKTREE_WS_METHODS.openInIDE, WorktreeOpenInIDEInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.healthCheck, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.getArborSettings, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.updateArborSettings, ArborUpdateSettingsInputSchema),
 
   // Review Context methods
   tagRequestBody(REVIEW_CONTEXT_WS_METHODS.detect, ReviewContextDetectInputSchema),

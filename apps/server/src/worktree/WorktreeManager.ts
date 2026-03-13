@@ -16,6 +16,8 @@ type IDEKind = "cursor" | "windsurf" | "vscode";
 
 interface ArborSettings {
   preferredIDE: IDEKind | null;
+  cleanupBehavior: "prompt" | "manual";
+  refreshIntervalMs: number;
 }
 
 const SETTINGS_FILENAME = "settings.json";
@@ -203,9 +205,11 @@ export class WorktreeManager {
       const parsed = JSON.parse(raw);
       return {
         preferredIDE: parsed?.preferredIDE ?? null,
+        cleanupBehavior: parsed?.cleanupBehavior ?? "prompt",
+        refreshIntervalMs: parsed?.refreshIntervalMs ?? 5 * 60 * 1000,
       };
     } catch {
-      return { preferredIDE: null };
+      return { preferredIDE: null, cleanupBehavior: "prompt", refreshIntervalMs: 5 * 60 * 1000 };
     }
   }
 
@@ -220,7 +224,12 @@ export class WorktreeManager {
     } catch {
       // File doesn't exist yet
     }
-    const merged = { ...existing, preferredIDE: settings.preferredIDE };
+    const merged = {
+      ...existing,
+      preferredIDE: settings.preferredIDE,
+      cleanupBehavior: settings.cleanupBehavior,
+      refreshIntervalMs: settings.refreshIntervalMs,
+    };
     await writeFile(filePath, JSON.stringify(merged, null, 2), "utf-8");
   }
 
@@ -258,7 +267,8 @@ export class WorktreeManager {
     preferredIDE: IDEKind | null;
     detectedIDEs: { cursor: boolean; windsurf: boolean; vscode: boolean };
   }> {
-    const settings: ArborSettings = { preferredIDE: input.preferredIDE };
+    const settings = await this.loadSettings();
+    settings.preferredIDE = input.preferredIDE;
     await this.saveSettings(settings);
     const detectedIDEs = await this.detectIDEs();
     return { preferredIDE: input.preferredIDE, detectedIDEs };
@@ -266,6 +276,114 @@ export class WorktreeManager {
 
   async openInIDE(worktreePath: string, ide: IDEKind): Promise<void> {
     return WorktreeService.openInIDE(worktreePath, ide);
+  }
+
+  // ── Health Check ───────────────────────────────────────────────────
+
+  async healthCheck(): Promise<{
+    git: { status: "ok" | "missing"; version: string | null };
+    claudeCode: { status: "ok" | "missing"; version: string | null };
+    github: { status: "ok" | "not_configured" | "invalid"; username: string | null };
+    ide: { status: "ok" | "not_configured" | "missing"; name: string | null };
+  }> {
+    const [gitResult, claudeResult, githubResult, ideResult] = await Promise.all([
+      this.checkGit(),
+      this.checkClaudeCode(),
+      this.checkGitHub(),
+      this.checkIDE(),
+    ]);
+    return { git: gitResult, claudeCode: claudeResult, github: githubResult, ide: ideResult };
+  }
+
+  private async checkGit(): Promise<{ status: "ok" | "missing"; version: string | null }> {
+    try {
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync("git", ["--version"], { timeout: 5000 });
+      const version = stdout.trim().replace("git version ", "");
+      return { status: "ok", version };
+    } catch {
+      return { status: "missing", version: null };
+    }
+  }
+
+  private async checkClaudeCode(): Promise<{ status: "ok" | "missing"; version: string | null }> {
+    try {
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync("claude", ["--version"], { timeout: 5000 });
+      return { status: "ok", version: stdout.trim() };
+    } catch {
+      return { status: "missing", version: null };
+    }
+  }
+
+  private async checkGitHub(): Promise<{ status: "ok" | "not_configured" | "invalid"; username: string | null }> {
+    try {
+      const { TokenStore } = await import("../github/TokenStore");
+      const token = await TokenStore.loadToken(this.configDir);
+      if (!token) return { status: "not_configured", username: null };
+      const { GitHubAuthService } = await import("../github/GitHubAuthService");
+      const { username } = await GitHubAuthService.validateToken(token);
+      return { status: "ok", username };
+    } catch {
+      return { status: "invalid", username: null };
+    }
+  }
+
+  private async checkIDE(): Promise<{ status: "ok" | "not_configured" | "missing"; name: string | null }> {
+    const settings = await this.loadSettings();
+    if (!settings.preferredIDE) return { status: "not_configured", name: null };
+    const detected = await this.detectIDEs();
+    if (detected[settings.preferredIDE]) {
+      const labels: Record<IDEKind, string> = { cursor: "Cursor", windsurf: "Windsurf", vscode: "VS Code" };
+      return { status: "ok", name: labels[settings.preferredIDE] };
+    }
+    return { status: "missing", name: settings.preferredIDE };
+  }
+
+  // ── Arbor Settings ─────────────────────────────────────────────────
+
+  async getArborSettings(): Promise<{
+    basePath: string;
+    cleanupBehavior: "prompt" | "manual";
+    refreshIntervalMs: number;
+  }> {
+    const settings = await this.loadSettings();
+    return {
+      basePath: this.basePath,
+      cleanupBehavior: settings.cleanupBehavior,
+      refreshIntervalMs: settings.refreshIntervalMs,
+    };
+  }
+
+  async updateArborSettings(input: {
+    basePath?: string | undefined;
+    cleanupBehavior?: "prompt" | "manual" | undefined;
+    refreshIntervalMs?: number | undefined;
+  }): Promise<{
+    basePath: string;
+    cleanupBehavior: "prompt" | "manual";
+    refreshIntervalMs: number;
+  }> {
+    const settings = await this.loadSettings();
+    if (input.basePath !== undefined) {
+      this.basePath = input.basePath;
+    }
+    if (input.cleanupBehavior !== undefined) {
+      settings.cleanupBehavior = input.cleanupBehavior;
+    }
+    if (input.refreshIntervalMs !== undefined) {
+      settings.refreshIntervalMs = input.refreshIntervalMs;
+    }
+    await this.saveSettings(settings);
+    return {
+      basePath: this.basePath,
+      cleanupBehavior: settings.cleanupBehavior,
+      refreshIntervalMs: settings.refreshIntervalMs,
+    };
   }
 
   /**
