@@ -67,6 +67,12 @@ import type {
   WorktreeGetDiskSizeInput,
   WorktreeSettingsResult,
   WorktreeUpdateSettingsInput,
+  WorktreeCheckLifecycleInput,
+  WorktreeCheckLifecycleResult,
+  IDEDetectionResult,
+  IDESettingsResult,
+  IDEUpdateSettingsInput,
+  WorktreeOpenInIDEInput,
 } from "./worktree";
 import type {
   ReviewContextDetectInput,
@@ -218,6 +224,11 @@ export interface NativeApi {
     getDiskSize: (input: WorktreeGetDiskSizeInput) => Promise<{ id: string; diskSizeMB: number }>;
     getSettings: () => Promise<WorktreeSettingsResult>;
     updateSettings: (input: WorktreeUpdateSettingsInput) => Promise<WorktreeSettingsResult>;
+    checkLifecycle: (input: WorktreeCheckLifecycleInput) => Promise<WorktreeCheckLifecycleResult>;
+    detectIDEs: () => Promise<IDEDetectionResult>;
+    getIDESettings: () => Promise<IDESettingsResult>;
+    updateIDESettings: (input: IDEUpdateSettingsInput) => Promise<IDESettingsResult>;
+    openInIDE: (input: WorktreeOpenInIDEInput) => Promise<void>;
   };
   reviewContext: {
     detect: (input: ReviewContextDetectInput) => Promise<ReviewContextDetectResult>;

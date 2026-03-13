@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { WorktreeService } from "./WorktreeService";
 import { WorktreeStore } from "./WorktreeStore";
+import { logCleanup } from "./CleanupLogger";
 import type {
   WorktreeSession,
   WorktreeCreateInput,
@@ -9,6 +11,14 @@ import type {
   WorktreeListResult,
   WorktreeRemoveResult,
 } from "./types";
+
+type IDEKind = "cursor" | "windsurf" | "vscode";
+
+interface ArborSettings {
+  preferredIDE: IDEKind | null;
+}
+
+const SETTINGS_FILENAME = "settings.json";
 
 const DEFAULT_BASE_PATH = path.join(
   process.env.HOME ?? process.env.USERPROFILE ?? "/tmp",
@@ -182,5 +192,134 @@ export class WorktreeManager {
   async updateSettings(settings: { basePath: string }): Promise<{ basePath: string }> {
     this.basePath = settings.basePath;
     return { basePath: this.basePath };
+  }
+
+  // ── IDE Settings ──────────────────────────────────────────────────
+
+  private async loadSettings(): Promise<ArborSettings> {
+    const filePath = path.join(this.configDir, SETTINGS_FILENAME);
+    try {
+      const raw = await readFile(filePath, "utf-8");
+      const parsed = JSON.parse(raw);
+      return {
+        preferredIDE: parsed?.preferredIDE ?? null,
+      };
+    } catch {
+      return { preferredIDE: null };
+    }
+  }
+
+  private async saveSettings(settings: ArborSettings): Promise<void> {
+    await mkdir(this.configDir, { recursive: true });
+    const filePath = path.join(this.configDir, SETTINGS_FILENAME);
+    // Preserve any existing fields in settings.json
+    let existing: Record<string, unknown> = {};
+    try {
+      const raw = await readFile(filePath, "utf-8");
+      existing = JSON.parse(raw);
+    } catch {
+      // File doesn't exist yet
+    }
+    const merged = { ...existing, preferredIDE: settings.preferredIDE };
+    await writeFile(filePath, JSON.stringify(merged, null, 2), "utf-8");
+  }
+
+  async detectIDEs(): Promise<{ cursor: boolean; windsurf: boolean; vscode: boolean }> {
+    return WorktreeService.detectIDEs();
+  }
+
+  async getIDESettings(): Promise<{
+    preferredIDE: IDEKind | null;
+    detectedIDEs: { cursor: boolean; windsurf: boolean; vscode: boolean };
+  }> {
+    const [settings, detectedIDEs] = await Promise.all([
+      this.loadSettings(),
+      this.detectIDEs(),
+    ]);
+
+    // If preferred IDE was set but is no longer detected, reset it
+    if (
+      settings.preferredIDE &&
+      !detectedIDEs[settings.preferredIDE]
+    ) {
+      settings.preferredIDE = null;
+      await this.saveSettings(settings);
+    }
+
+    return {
+      preferredIDE: settings.preferredIDE,
+      detectedIDEs,
+    };
+  }
+
+  async updateIDESettings(input: {
+    preferredIDE: IDEKind | null;
+  }): Promise<{
+    preferredIDE: IDEKind | null;
+    detectedIDEs: { cursor: boolean; windsurf: boolean; vscode: boolean };
+  }> {
+    const settings: ArborSettings = { preferredIDE: input.preferredIDE };
+    await this.saveSettings(settings);
+    const detectedIDEs = await this.detectIDEs();
+    return { preferredIDE: input.preferredIDE, detectedIDEs };
+  }
+
+  async openInIDE(worktreePath: string, ide: IDEKind): Promise<void> {
+    return WorktreeService.openInIDE(worktreePath, ide);
+  }
+
+  /**
+   * Check PR lifecycle statuses against active sessions and perform cleanup.
+   * - Merged/closed PRs → auto-remove worktree silently
+   * - Approved PRs → return notification action (client shows toast)
+   */
+  async checkLifecycle(
+    prStatuses: Array<{
+      repoSlug: string;
+      prNumber: number;
+      state: "open" | "merged" | "closed";
+      reviewStatus: "approved" | "changes_requested" | "review_required" | "unknown";
+    }>,
+  ): Promise<{ actions: Array<{ sessionId: string; prNumber: number; repoSlug: string; action: "auto_removed" | "approved" }> }> {
+    const sessions = await WorktreeStore.load(this.configDir);
+    const actions: Array<{ sessionId: string; prNumber: number; repoSlug: string; action: "auto_removed" | "approved" }> = [];
+
+    for (const status of prStatuses) {
+      const session = sessions.find(
+        (s) =>
+          s.repoSlug.toLowerCase() === status.repoSlug.toLowerCase() &&
+          s.prNumber === status.prNumber,
+      );
+      if (!session) continue;
+
+      if (status.state === "merged" || status.state === "closed") {
+        try {
+          await this.remove(session.id);
+          const reason = status.state === "merged" ? "PR merged" : "PR closed without merge";
+          await logCleanup("auto_removed", status.repoSlug, status.prNumber, reason);
+          actions.push({
+            sessionId: session.id,
+            prNumber: status.prNumber,
+            repoSlug: status.repoSlug,
+            action: "auto_removed",
+          });
+        } catch {
+          // Best-effort cleanup
+        }
+      } else if (
+        status.state === "open" &&
+        status.reviewStatus === "approved"
+      ) {
+        await logCleanup("approved_offered", status.repoSlug, status.prNumber, "PR approved — cleanup offered");
+        actions.push({
+          sessionId: session.id,
+          prNumber: status.prNumber,
+          repoSlug: status.repoSlug,
+          action: "approved",
+        });
+      }
+    }
+
+    return { actions };
   }
 }

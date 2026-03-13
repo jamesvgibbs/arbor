@@ -197,6 +197,11 @@ export function createWsNativeApi(): NativeApi {
       getDiskSize: (input) => transport.request(WORKTREE_WS_METHODS.getDiskSize, input),
       getSettings: () => transport.request(WORKTREE_WS_METHODS.getSettings),
       updateSettings: (input) => transport.request(WORKTREE_WS_METHODS.updateSettings, input),
+      checkLifecycle: (input) => transport.request(WORKTREE_WS_METHODS.checkLifecycle, input),
+      detectIDEs: () => transport.request(WORKTREE_WS_METHODS.detectIDEs),
+      getIDESettings: () => transport.request(WORKTREE_WS_METHODS.getIDESettings),
+      updateIDESettings: (input) => transport.request(WORKTREE_WS_METHODS.updateIDESettings, input),
+      openInIDE: (input) => transport.request(WORKTREE_WS_METHODS.openInIDE, input),
     },
     reviewContext: {
       detect: (input) => transport.request(REVIEW_CONTEXT_WS_METHODS.detect, input),

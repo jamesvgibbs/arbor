@@ -52,6 +52,9 @@ import {
   WorktreeRemoveInput as WorktreeRemoveInputSchema,
   WorktreeGetDiskSizeInput as WorktreeGetDiskSizeInputSchema,
   WorktreeUpdateSettingsInput as WorktreeUpdateSettingsInputSchema,
+  WorktreeCheckLifecycleInput as WorktreeCheckLifecycleInputSchema,
+  IDEUpdateSettingsInput as IDEUpdateSettingsInputSchema,
+  WorktreeOpenInIDEInput as WorktreeOpenInIDEInputSchema,
 } from "./worktree";
 import {
   REVIEW_CONTEXT_WS_METHODS,
@@ -176,6 +179,11 @@ const WebSocketRequestBody = Schema.Union([
   tagRequestBody(WORKTREE_WS_METHODS.getDiskSize, WorktreeGetDiskSizeInputSchema),
   tagRequestBody(WORKTREE_WS_METHODS.getSettings, Schema.Struct({})),
   tagRequestBody(WORKTREE_WS_METHODS.updateSettings, WorktreeUpdateSettingsInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.checkLifecycle, WorktreeCheckLifecycleInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.detectIDEs, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.getIDESettings, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.updateIDESettings, IDEUpdateSettingsInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.openInIDE, WorktreeOpenInIDEInputSchema),
 
   // Review Context methods
   tagRequestBody(REVIEW_CONTEXT_WS_METHODS.detect, ReviewContextDetectInputSchema),

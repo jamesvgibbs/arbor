@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
-import { type ProviderKind } from "@arbortools/contracts";
+import { type ProviderKind, type IDEKind } from "@arbortools/contracts";
 import { getModelOptions, normalizeModelSlug } from "@arbortools/shared/model";
 import {
   GitBranchIcon,
@@ -9,6 +9,7 @@ import {
   XCircleIcon,
   ExternalLinkIcon,
   UserIcon,
+  AlertTriangleIcon,
 } from "lucide-react";
 import { MAX_CUSTOM_MODEL_LENGTH, useAppSettings } from "../appSettings";
 import { resolveAndPersistPreferredEditor } from "../editorPreferences";
@@ -24,6 +25,10 @@ import {
   githubAddRepoMutationOptions,
   githubRemoveRepoMutationOptions,
 } from "../lib/githubReactQuery";
+import {
+  ideSettingsQueryOptions,
+  ideUpdateSettingsMutationOptions,
+} from "../lib/worktreeReactQuery";
 import { ensureNativeApi } from "../nativeApi";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -365,6 +370,89 @@ function GitHubSettingsSection() {
   );
 }
 
+const IDE_LABELS: Record<IDEKind, string> = {
+  cursor: "Cursor",
+  windsurf: "Windsurf",
+  vscode: "VS Code",
+};
+
+function IDESettingsSection() {
+  const queryClient = useQueryClient();
+  const ideQuery = useQuery({
+    ...ideSettingsQueryOptions(),
+    refetchOnMount: "always", // Re-run detection when settings screen opens
+  });
+  const updateMutation = useMutation(ideUpdateSettingsMutationOptions({ queryClient }));
+
+  const preferredIDE = ideQuery.data?.preferredIDE ?? null;
+  const detected = ideQuery.data?.detectedIDEs;
+  const detectedList: IDEKind[] = detected
+    ? (Object.entries(detected) as [IDEKind, boolean][])
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+    : [];
+
+  // Check if preferred IDE is set but no longer detected
+  const preferredNotDetected =
+    preferredIDE !== null && detected && !detected[preferredIDE];
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-5">
+      <div className="mb-4">
+        <h2 className="text-sm font-medium text-foreground">Preferred IDE</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Choose the IDE used to open worktrees. Only IDEs detected in your PATH are shown.
+        </p>
+      </div>
+
+      {ideQuery.isLoading && (
+        <div className="rounded-lg border border-border bg-background px-3 py-4 text-xs text-muted-foreground">
+          Detecting installed IDEs...
+        </div>
+      )}
+
+      {ideQuery.isSuccess && detectedList.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border bg-background px-3 py-4 text-xs text-muted-foreground">
+          No supported IDEs detected in PATH. Install Cursor, Windsurf, or VS Code and ensure their CLI command is available.
+        </div>
+      )}
+
+      {ideQuery.isSuccess && detectedList.length > 0 && (
+        <div className="space-y-3">
+          {preferredNotDetected && (
+            <div className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs text-yellow-600 dark:text-yellow-400">
+              <AlertTriangleIcon className="size-3.5 shrink-0" />
+              {IDE_LABELS[preferredIDE!]} no longer detected in PATH
+            </div>
+          )}
+
+          <select
+            value={preferredIDE ?? ""}
+            onChange={(e) => {
+              const value = e.target.value || null;
+              updateMutation.mutate({
+                preferredIDE: value as IDEKind | null,
+              });
+            }}
+            className="h-8 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-xs/5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/24"
+          >
+            <option value="">Not set</option>
+            {detectedList.map((ide) => (
+              <option key={ide} value={ide}>
+                {IDE_LABELS[ide]}
+              </option>
+            ))}
+          </select>
+
+          <p className="text-xs text-muted-foreground">
+            Detected: {detectedList.map((ide) => IDE_LABELS[ide]).join(", ")}
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SettingsRouteView() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { settings, defaults, updateSettings } = useAppSettings();
@@ -491,6 +579,8 @@ function SettingsRouteView() {
             </header>
 
             <GitHubSettingsSection />
+
+            <IDESettingsSection />
 
             <section className="rounded-2xl border border-border bg-card p-5">
               <div className="mb-4">
@@ -793,9 +883,9 @@ function SettingsRouteView() {
             </section>
             <section className="rounded-2xl border border-border bg-card p-5">
               <div className="mb-4">
-                <h2 className="text-sm font-medium text-foreground">Review Sessions</h2>
+                <h2 className="text-sm font-medium text-foreground">Review Context</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Configure behavior when starting PR review sessions.
+                  Control how CLAUDE.md review context is generated for new PR sessions.
                 </p>
               </div>
 
@@ -805,8 +895,8 @@ function SettingsRouteView() {
                     Initialize Claude context on new review sessions
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Run <code>claude /init</code> to generate a repo-aware CLAUDE.md when creating a
-                    new review worktree.
+                    Run <code>claude /init</code> to generate a repo-aware CLAUDE.md before starting
+                    each review session. When disabled, only the PR header is written.
                   </p>
                 </div>
                 <Switch

@@ -107,7 +107,7 @@ export interface ServerShape {
 /**
  * Server - Service tag for HTTP/WebSocket lifecycle management.
  */
-export class Server extends ServiceMap.Service<Server, ServerShape>()("t3/wsServer/Server") {}
+export class Server extends ServiceMap.Service<Server, ServerShape>()("arbor/wsServer/Server") {}
 
 const isServerNotRunningError = (error: Error): boolean => {
   const maybeCode = (error as NodeJS.ErrnoException).code;
@@ -1019,6 +1019,42 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         });
       }
 
+      case WORKTREE_WS_METHODS.checkLifecycle: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.checkLifecycle([...body.prStatuses]),
+          catch: (cause) => new RouteRequestError({ message: `Failed to check worktree lifecycle: ${String(cause)}` }),
+        });
+      }
+
+      case WORKTREE_WS_METHODS.detectIDEs:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.detectIDEs(),
+          catch: (cause) => new RouteRequestError({ message: `Failed to detect IDEs: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.getIDESettings:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.getIDESettings(),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get IDE settings: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.updateIDESettings: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.updateIDESettings(body),
+          catch: (cause) => new RouteRequestError({ message: `Failed to update IDE settings: ${String(cause)}` }),
+        });
+      }
+
+      case WORKTREE_WS_METHODS.openInIDE: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.openInIDE(body.worktreePath, body.ide),
+          catch: (cause) => new RouteRequestError({ message: `Failed to open in IDE: ${String(cause)}` }),
+        });
+      }
+
       // ── Review Context methods ──────────────────────────────────────
       case REVIEW_CONTEXT_WS_METHODS.detect: {
         const body = stripRequestTag(request.body);
@@ -1031,7 +1067,7 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
       case REVIEW_CONTEXT_WS_METHODS.init: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
-          try: () => reviewContextManager.init(body),
+          try: () => reviewContextManager.init({ ...body, skipInit: body.skipInit ?? false }),
           catch: (cause) => new RouteRequestError({ message: `Failed to init review context: ${String(cause)}` }),
         });
       }

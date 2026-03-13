@@ -1,13 +1,13 @@
 {
-  "name": "t3",
+  "name": "arbor",
   "version": "0.0.10",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pingdotgg/t3code",
+    "url": "https://github.com/jamesvgibbs/arbor",
     "directory": "apps/server"
   },
   "bin": {
-    "t3": "./dist/index.mjs"
+    "arbor": "./dist/index.mjs"
   },
   "files": [
     "dist"

@@ -39,7 +39,7 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const stateDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-telemetry-flush-",
+        prefix: "arbor-telemetry-flush-",
       });
 
       const capturedRequests: Array<RecordedBatchRequest> = [];
