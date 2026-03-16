@@ -136,6 +136,49 @@ export class WorktreeService {
   }
 
   /**
+   * Detect which supported IDEs are available in PATH.
+   */
+  static async detectIDEs(): Promise<{ cursor: boolean; windsurf: boolean; vscode: boolean }> {
+    const check = async (cmd: string): Promise<boolean> => {
+      try {
+        await execFileAsync("which", [cmd], { timeout: 5_000 });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const [cursor, windsurf, vscode] = await Promise.all([
+      check("cursor"),
+      check("windsurf"),
+      check("code"),
+    ]);
+    return { cursor, windsurf, vscode };
+  }
+
+  /**
+   * Open a directory in a specific IDE.
+   */
+  static async openInIDE(
+    worktreePath: string,
+    ide: "cursor" | "windsurf" | "vscode",
+  ): Promise<void> {
+    const commands: Record<string, string> = {
+      cursor: "cursor",
+      windsurf: "windsurf",
+      vscode: "code",
+    };
+    const cmd = commands[ide];
+    if (!cmd) throw new Error(`Unknown IDE: ${ide}`);
+
+    const { spawn } = await import("node:child_process");
+    const child = spawn(cmd, [worktreePath], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+  }
+
+  /**
    * Generate a sanitized worktree path for a PR.
    */
   static worktreePath(

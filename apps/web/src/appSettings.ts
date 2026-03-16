@@ -4,7 +4,7 @@ import { type ProviderKind } from "@arbortools/contracts";
 import { getDefaultModel, getModelOptions, normalizeModelSlug } from "@arbortools/shared/model";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 
-const APP_SETTINGS_STORAGE_KEY = "t3code:app-settings:v1";
+const APP_SETTINGS_STORAGE_KEY = "arbor:app-settings:v1";
 const MAX_CUSTOM_MODEL_COUNT = 32;
 export const MAX_CUSTOM_MODEL_LENGTH = 256;
 const BUILT_IN_MODEL_SLUGS_BY_PROVIDER: Record<ProviderKind, ReadonlySet<string>> = {

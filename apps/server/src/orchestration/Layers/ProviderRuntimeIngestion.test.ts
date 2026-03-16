@@ -139,7 +139,7 @@ describe("ProviderRuntimeIngestion", () => {
   });
 
   async function createHarness() {
-    const workspaceRoot = makeTempDir("t3-provider-project-");
+    const workspaceRoot = makeTempDir("arbor-provider-project-");
     fs.mkdirSync(path.join(workspaceRoot, ".git"));
     const provider = createProviderServiceHarness();
     const orchestrationLayer = OrchestrationEngineLive.pipe(

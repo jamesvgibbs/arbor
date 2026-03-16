@@ -42,29 +42,29 @@ function makeFakeCodexBinary(dir: string) {
         "  shift",
         "done",
         'stdin_content="$(cat)"',
-        'if [ "$T3_FAKE_CODEX_REQUIRE_IMAGE" = "1" ] && [ "$seen_image" != "1" ]; then',
+        'if [ "$ARBOR_FAKE_CODEX_REQUIRE_IMAGE" = "1" ] && [ "$seen_image" != "1" ]; then',
         '  printf "%s\\n" "missing --image input" >&2',
         "  exit 2",
         "fi",
-        'if [ -n "$T3_FAKE_CODEX_STDIN_MUST_CONTAIN" ]; then',
-        '  printf "%s" "$stdin_content" | grep -F -- "$T3_FAKE_CODEX_STDIN_MUST_CONTAIN" >/dev/null || {',
+        'if [ -n "$ARBOR_FAKE_CODEX_STDIN_MUST_CONTAIN" ]; then',
+        '  printf "%s" "$stdin_content" | grep -F -- "$ARBOR_FAKE_CODEX_STDIN_MUST_CONTAIN" >/dev/null || {',
         '    printf "%s\\n" "stdin missing expected content" >&2',
         "    exit 3",
         "  }",
         "fi",
-        'if [ -n "$T3_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN" ]; then',
-        '  if printf "%s" "$stdin_content" | grep -F -- "$T3_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN" >/dev/null; then',
+        'if [ -n "$ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN" ]; then',
+        '  if printf "%s" "$stdin_content" | grep -F -- "$ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN" >/dev/null; then',
         '    printf "%s\\n" "stdin contained forbidden content" >&2',
         "    exit 4",
         "  fi",
         "fi",
-        'if [ -n "$T3_FAKE_CODEX_STDERR" ]; then',
-        '  printf "%s\\n" "$T3_FAKE_CODEX_STDERR" >&2',
+        'if [ -n "$ARBOR_FAKE_CODEX_STDERR" ]; then',
+        '  printf "%s\\n" "$ARBOR_FAKE_CODEX_STDERR" >&2',
         "fi",
         'if [ -n "$output_path" ]; then',
-        '  node -e \'const fs=require("node:fs"); const value=process.argv[2] ?? ""; fs.writeFileSync(process.argv[1], Buffer.from(value, "base64"));\' "$output_path" "${T3_FAKE_CODEX_OUTPUT_B64:-e30=}"',
+        '  node -e \'const fs=require("node:fs"); const value=process.argv[2] ?? ""; fs.writeFileSync(process.argv[1], Buffer.from(value, "base64"));\' "$output_path" "${ARBOR_FAKE_CODEX_OUTPUT_B64:-e30=}"',
         "fi",
-        'exit "${T3_FAKE_CODEX_EXIT_CODE:-0}"',
+        'exit "${ARBOR_FAKE_CODEX_EXIT_CODE:-0}"',
         "",
       ].join("\n"),
     );
@@ -87,7 +87,7 @@ function withFakeCodexEnv<A, E, R>(
   return Effect.acquireUseRelease(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-codex-text-" });
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "arbor-codex-text-" });
       const binDir = yield* makeFakeCodexBinary(tempDir);
       const previousPath = process.env.PATH;
       const previousOutput = process.env.ARBOR_FAKE_CODEX_OUTPUT_B64;

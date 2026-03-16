@@ -174,9 +174,11 @@ const SCRIPT_TERMINAL_ROWS = 30;
 
 interface ChatViewProps {
   threadId: ThreadId;
+  /** When true, renders a simplified header without git/script/diff controls and hides BranchToolbar. */
+  reviewMode?: boolean;
 }
 
-export default function ChatView({ threadId }: ChatViewProps) {
+export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
   const threads = useStore((store) => store.threads);
   const projects = useStore((store) => store.projects);
   const markThreadVisited = useStore((store) => store.markThreadVisited);
@@ -3174,27 +3176,10 @@ export default function ChatView({ threadId }: ChatViewProps) {
         )}
       >
         <ChatHeader
-          activeThreadId={activeThread.id}
           activeThreadTitle={activeThread.title}
           activeProjectName={activeProject?.name}
           isGitRepo={isGitRepo}
-          openInCwd={activeThread.worktreePath ?? activeProject?.cwd ?? null}
-          activeProjectScripts={activeProject?.scripts}
-          preferredScriptId={
-            activeProject ? (lastInvokedScriptByProjectId[activeProject.id] ?? null) : null
-          }
-          keybindings={keybindings}
-          availableEditors={availableEditors}
-          diffToggleShortcutLabel={diffPanelShortcutLabel}
-          gitCwd={gitCwd}
-          diffOpen={diffOpen}
-          onRunProjectScript={(script) => {
-            void runProjectScript(script);
-          }}
-          onAddProjectScript={saveProjectScript}
-          onUpdateProjectScript={updateProjectScript}
-          onDeleteProjectScript={deleteProjectScript}
-          onToggleDiff={onToggleDiff}
+          reviewMode={reviewMode}
         />
       </header>
 
@@ -3729,7 +3714,7 @@ export default function ChatView({ threadId }: ChatViewProps) {
             </form>
           </div>
 
-          {isGitRepo && (
+          {isGitRepo && !reviewMode && (
             <BranchToolbar
               threadId={activeThread.id}
               onEnvModeChange={onEnvModeChange}

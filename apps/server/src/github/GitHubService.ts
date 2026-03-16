@@ -139,11 +139,116 @@ export class GitHubService {
   }
 
   /**
+   * List files changed in a pull request, handling pagination.
+   */
+  async listPRFiles(
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<GitHubPRFileResponse[]> {
+    const perPage = 100;
+    let page = 1;
+    const allFiles: GitHubPRFileResponse[] = [];
+
+    while (true) {
+      const batch = await this.get<GitHubPRFileResponse[]>(
+        `/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=${perPage}&page=${page}`,
+      );
+
+      allFiles.push(...batch);
+
+      if (batch.length < perPage) break;
+      page++;
+    }
+
+    return allFiles;
+  }
+
+  /**
+   * List review comments on a pull request, handling pagination.
+   */
+  async listReviewComments(
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<GitHubPRReviewCommentResponse[]> {
+    const perPage = 100;
+    let page = 1;
+    const allComments: GitHubPRReviewCommentResponse[] = [];
+
+    while (true) {
+      const batch = await this.get<GitHubPRReviewCommentResponse[]>(
+        `/repos/${owner}/${repo}/pulls/${prNumber}/comments?per_page=${perPage}&page=${page}`,
+      );
+
+      allComments.push(...batch);
+
+      if (batch.length < perPage) break;
+      page++;
+    }
+
+    return allComments;
+  }
+
+  /**
+   * Submit a review on a pull request, optionally with inline comments.
+   */
+  async submitReview(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    body: string,
+    event: "APPROVE" | "COMMENT" | "REQUEST_CHANGES",
+    comments?: Array<{
+      path: string;
+      body: string;
+      line: number;
+      side: "LEFT" | "RIGHT";
+      start_line?: number;
+      start_side?: "LEFT" | "RIGHT";
+    }>,
+  ): Promise<void> {
+    const payload: Record<string, unknown> = { body, event };
+    if (comments && comments.length > 0) {
+      payload.comments = comments;
+    }
+    await this.post(
+      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+      payload,
+    );
+  }
+
+  /**
    * Perform a GET request against the GitHub API.
    */
   private async get<T>(path: string): Promise<T> {
     const url = `${GITHUB_API_BASE}${path}`;
     const res = await fetch(url, { headers: this.headers });
+
+    const rateLimit = extractRateLimit(res);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new GitHubApiError(
+        `GitHub API error: ${res.status} ${res.statusText} - ${text}`,
+        res.status,
+        rateLimit,
+      );
+    }
+
+    return (await res.json()) as T;
+  }
+
+  /**
+   * Perform a POST request against the GitHub API.
+   */
+  private async post<T = unknown>(path: string, data: unknown): Promise<T> {
+    const url = `${GITHUB_API_BASE}${path}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { ...this.headers, "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
     const rateLimit = extractRateLimit(res);
 
@@ -166,6 +271,34 @@ export class GitHubService {
 
 type CIStatus = PRCard["ciStatus"];
 type ReviewStatus = PRCard["reviewStatus"];
+
+export interface GitHubPRReviewCommentResponse {
+  id: number;
+  path: string;
+  line: number | null;
+  original_line: number | null;
+  side: "LEFT" | "RIGHT";
+  body: string;
+  user: {
+    login: string;
+    avatar_url: string;
+  };
+  created_at: string;
+  start_line: number | null;
+  start_side: "LEFT" | "RIGHT" | null;
+  in_reply_to_id?: number;
+}
+
+export interface GitHubPRFileResponse {
+  sha: string;
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch?: string;
+  previous_filename?: string;
+}
 
 interface GitHubPullResponse {
   number: number;

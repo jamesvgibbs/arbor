@@ -57,6 +57,9 @@ import type {
   GitHubPRListResult,
   GitHubPRDetailsInput,
   GitHubRefreshInput,
+  GitHubSubmitReviewInput,
+  GitHubGetReviewCommentsInput,
+  GitHubGetReviewCommentsResult,
 } from "./github";
 import type {
   WorktreeCreateInput,
@@ -67,6 +70,15 @@ import type {
   WorktreeGetDiskSizeInput,
   WorktreeSettingsResult,
   WorktreeUpdateSettingsInput,
+  WorktreeCheckLifecycleInput,
+  WorktreeCheckLifecycleResult,
+  IDEDetectionResult,
+  IDESettingsResult,
+  IDEUpdateSettingsInput,
+  WorktreeOpenInIDEInput,
+  HealthCheckResult,
+  ArborSettingsResult,
+  ArborUpdateSettingsInput,
 } from "./worktree";
 import type {
   ReviewContextDetectInput,
@@ -74,6 +86,14 @@ import type {
   ReviewContextInitInput,
   ReviewContextInitResult,
 } from "./reviewContext";
+import type {
+  DiffGetChangedFilesInput,
+  DiffGetChangedFilesResult,
+  DiffGetLocalDiffInput,
+  DiffGetLocalDiffResult,
+  DiffGetFileContentInput,
+  DiffGetFileContentResult,
+} from "./diff";
 import { EditorId } from "./editor";
 
 export interface ContextMenuItem<T extends string = string> {
@@ -210,6 +230,8 @@ export interface NativeApi {
     listPRs: (input: GitHubPRListInput) => Promise<GitHubPRListResult>;
     getPRDetails: (input: GitHubPRDetailsInput) => Promise<any>;
     refreshPRs: (input: GitHubRefreshInput) => Promise<GitHubPRListResult>;
+    submitReview: (input: GitHubSubmitReviewInput) => Promise<{ ok: true }>;
+    getReviewComments: (input: GitHubGetReviewCommentsInput) => Promise<GitHubGetReviewCommentsResult>;
   };
   worktree: {
     create: (input: WorktreeCreateInput) => Promise<WorktreeCreateResult>;
@@ -218,9 +240,22 @@ export interface NativeApi {
     getDiskSize: (input: WorktreeGetDiskSizeInput) => Promise<{ id: string; diskSizeMB: number }>;
     getSettings: () => Promise<WorktreeSettingsResult>;
     updateSettings: (input: WorktreeUpdateSettingsInput) => Promise<WorktreeSettingsResult>;
+    checkLifecycle: (input: WorktreeCheckLifecycleInput) => Promise<WorktreeCheckLifecycleResult>;
+    detectIDEs: () => Promise<IDEDetectionResult>;
+    getIDESettings: () => Promise<IDESettingsResult>;
+    updateIDESettings: (input: IDEUpdateSettingsInput) => Promise<IDESettingsResult>;
+    openInIDE: (input: WorktreeOpenInIDEInput) => Promise<void>;
+    healthCheck: () => Promise<HealthCheckResult>;
+    getArborSettings: () => Promise<ArborSettingsResult>;
+    updateArborSettings: (input: ArborUpdateSettingsInput) => Promise<ArborSettingsResult>;
   };
   reviewContext: {
     detect: (input: ReviewContextDetectInput) => Promise<ReviewContextDetectResult>;
     init: (input: ReviewContextInitInput) => Promise<ReviewContextInitResult>;
+  };
+  diff: {
+    getChangedFiles: (input: DiffGetChangedFilesInput) => Promise<DiffGetChangedFilesResult>;
+    getLocalDiff: (input: DiffGetLocalDiffInput) => Promise<DiffGetLocalDiffResult>;
+    getFileContent: (input: DiffGetFileContentInput) => Promise<DiffGetFileContentResult>;
   };
 }

@@ -1,7 +1,7 @@
 import { Encoding } from "effect";
 import { CheckpointRef, ProjectId, type ThreadId } from "@arbortools/contracts";
 
-export const CHECKPOINT_REFS_PREFIX = "refs/t3/checkpoints";
+export const CHECKPOINT_REFS_PREFIX = "refs/arbor/checkpoints";
 
 export function checkpointRefForThreadTurn(threadId: ThreadId, turnCount: number): CheckpointRef {
   return CheckpointRef.makeUnsafe(

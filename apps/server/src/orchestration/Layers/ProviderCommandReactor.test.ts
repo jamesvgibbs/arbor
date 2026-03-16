@@ -85,7 +85,7 @@ describe("ProviderCommandReactor", () => {
 
   async function createHarness(input?: { readonly stateDir?: string }) {
     const now = new Date().toISOString();
-    const stateDir = input?.stateDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "t3code-reactor-"));
+    const stateDir = input?.stateDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "arbor-reactor-"));
     createdStateDirs.add(stateDir);
     const runtimeEventPubSub = Effect.runSync(PubSub.unbounded<ProviderRuntimeEvent>());
     let nextSessionIndex = 1;

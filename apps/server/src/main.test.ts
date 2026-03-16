@@ -33,7 +33,7 @@ const findAvailablePort = vi.fn((preferred: number) => Effect.succeed(preferred)
 // Shared service layer used by this CLI test suite.
 const testLayer = Layer.mergeAll(
   Layer.succeed(CliConfig, {
-    cwd: "/tmp/t3-test-workspace",
+    cwd: "/tmp/arbor-test-workspace",
     fixPath: Effect.void,
     resolveStaticDir: Effect.undefined,
   } satisfies CliConfigShape),
@@ -60,7 +60,7 @@ const runCli = (
   args: ReadonlyArray<string>,
   env: Record<string, string> = { ARBOR_NO_BROWSER: "true" },
 ) => {
-  const uniqueStateDir = `/tmp/t3-cli-state-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const uniqueStateDir = `/tmp/arbor-cli-state-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   return Command.runWith(t3Cli, { version: "0.0.0-test" })(args).pipe(
     Effect.provide(
       ConfigProvider.layer(
@@ -94,7 +94,7 @@ it.layer(testLayer)("server CLI command", (it) => {
         "--host",
         "0.0.0.0",
         "--state-dir",
-        "/tmp/t3-cli-state",
+        "/tmp/arbor-cli-state",
         "--dev-url",
         "http://127.0.0.1:5173",
         "--no-browser",
@@ -106,7 +106,7 @@ it.layer(testLayer)("server CLI command", (it) => {
       assert.equal(resolvedConfig?.mode, "desktop");
       assert.equal(resolvedConfig?.port, 4010);
       assert.equal(resolvedConfig?.host, "0.0.0.0");
-      assert.equal(resolvedConfig?.stateDir, "/tmp/t3-cli-state");
+      assert.equal(resolvedConfig?.stateDir, "/tmp/arbor-cli-state");
       assert.equal(resolvedConfig?.devUrl?.toString(), "http://127.0.0.1:5173/");
       assert.equal(resolvedConfig?.noBrowser, true);
       assert.equal(resolvedConfig?.authToken, "auth-secret");
@@ -131,7 +131,7 @@ it.layer(testLayer)("server CLI command", (it) => {
         ARBOR_MODE: "desktop",
         ARBOR_PORT: "4999",
         ARBOR_HOST: "100.88.10.4",
-        ARBOR_STATE_DIR: "/tmp/t3-env-state",
+        ARBOR_STATE_DIR: "/tmp/arbor-env-state",
         VITE_DEV_SERVER_URL: "http://localhost:5173",
         ARBOR_NO_BROWSER: "true",
         ARBOR_AUTH_TOKEN: "env-token",
@@ -141,7 +141,7 @@ it.layer(testLayer)("server CLI command", (it) => {
       assert.equal(resolvedConfig?.mode, "desktop");
       assert.equal(resolvedConfig?.port, 4999);
       assert.equal(resolvedConfig?.host, "100.88.10.4");
-      assert.equal(resolvedConfig?.stateDir, "/tmp/t3-env-state");
+      assert.equal(resolvedConfig?.stateDir, "/tmp/arbor-env-state");
       assert.equal(resolvedConfig?.devUrl?.toString(), "http://localhost:5173/");
       assert.equal(resolvedConfig?.noBrowser, true);
       assert.equal(resolvedConfig?.authToken, "env-token");

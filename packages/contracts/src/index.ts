@@ -14,3 +14,4 @@ export * from "./project";
 export * from "./github";
 export * from "./worktree";
 export * from "./reviewContext";
+export * from "./diff";

@@ -37,4 +37,4 @@ export interface ProviderRuntimeIngestionShape {
 export class ProviderRuntimeIngestionService extends ServiceMap.Service<
   ProviderRuntimeIngestionService,
   ProviderRuntimeIngestionShape
->()("t3/orchestration/Services/ProviderRuntimeIngestion/ProviderRuntimeIngestionService") {}
+>()("arbor/orchestration/Services/ProviderRuntimeIngestion/ProviderRuntimeIngestionService") {}

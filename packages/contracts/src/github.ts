@@ -114,6 +114,57 @@ export const GitHubRefreshInput = Schema.Struct({
 });
 export type GitHubRefreshInput = typeof GitHubRefreshInput.Type;
 
+// ── Submit Review ────────────────────────────────────────────────────
+
+export const GitHubReviewComment = Schema.Struct({
+  path: Schema.String,
+  body: Schema.String,
+  line: Schema.Number,
+  side: Schema.String,
+  startLine: Schema.optional(Schema.Number),
+  startSide: Schema.optional(Schema.String),
+});
+export type GitHubReviewComment = typeof GitHubReviewComment.Type;
+
+export const GitHubSubmitReviewInput = Schema.Struct({
+  owner: Schema.String,
+  repo: Schema.String,
+  prNumber: Schema.Number,
+  body: Schema.String,
+  event: Schema.Union([Schema.Literal("APPROVE"), Schema.Literal("COMMENT"), Schema.Literal("REQUEST_CHANGES")]),
+  comments: Schema.optional(Schema.Array(GitHubReviewComment)),
+});
+export type GitHubSubmitReviewInput = typeof GitHubSubmitReviewInput.Type;
+
+// ── Review Comments ─────────────────────────────────────────────────
+
+export const GitHubPRReviewComment = Schema.Struct({
+  id: Schema.Number,
+  path: Schema.String,
+  line: Schema.Number,
+  side: Schema.Union([Schema.Literal("LEFT"), Schema.Literal("RIGHT")]),
+  body: Schema.String,
+  author: Schema.String,
+  authorAvatarUrl: Schema.String,
+  createdAt: Schema.String,
+  startLine: Schema.optional(Schema.Number),
+  startSide: Schema.optional(Schema.Union([Schema.Literal("LEFT"), Schema.Literal("RIGHT")])),
+  inReplyToId: Schema.optional(Schema.Number),
+});
+export type GitHubPRReviewComment = typeof GitHubPRReviewComment.Type;
+
+export const GitHubGetReviewCommentsInput = Schema.Struct({
+  owner: Schema.String,
+  repo: Schema.String,
+  prNumber: Schema.Number,
+});
+export type GitHubGetReviewCommentsInput = typeof GitHubGetReviewCommentsInput.Type;
+
+export const GitHubGetReviewCommentsResult = Schema.Struct({
+  comments: Schema.Array(GitHubPRReviewComment),
+});
+export type GitHubGetReviewCommentsResult = typeof GitHubGetReviewCommentsResult.Type;
+
 // ── WS Method names ──────────────────────────────────────────────────
 
 export const GITHUB_WS_METHODS = {
@@ -127,4 +178,6 @@ export const GITHUB_WS_METHODS = {
   listPRs: "github.listPRs",
   getPRDetails: "github.getPRDetails",
   refreshPRs: "github.refreshPRs",
+  submitReview: "github.submitReview",
+  getReviewComments: "github.getReviewComments",
 } as const;

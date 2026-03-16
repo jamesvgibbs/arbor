@@ -45,6 +45,8 @@ import {
   GitHubPRListInput,
   GitHubPRDetailsInput,
   GitHubRefreshInput,
+  GitHubSubmitReviewInput,
+  GitHubGetReviewCommentsInput,
 } from "./github";
 import {
   WORKTREE_WS_METHODS,
@@ -52,12 +54,22 @@ import {
   WorktreeRemoveInput as WorktreeRemoveInputSchema,
   WorktreeGetDiskSizeInput as WorktreeGetDiskSizeInputSchema,
   WorktreeUpdateSettingsInput as WorktreeUpdateSettingsInputSchema,
+  WorktreeCheckLifecycleInput as WorktreeCheckLifecycleInputSchema,
+  IDEUpdateSettingsInput as IDEUpdateSettingsInputSchema,
+  WorktreeOpenInIDEInput as WorktreeOpenInIDEInputSchema,
+  ArborUpdateSettingsInput as ArborUpdateSettingsInputSchema,
 } from "./worktree";
 import {
   REVIEW_CONTEXT_WS_METHODS,
   ReviewContextDetectInput as ReviewContextDetectInputSchema,
   ReviewContextInitInput as ReviewContextInitInputSchema,
 } from "./reviewContext";
+import {
+  DIFF_WS_METHODS,
+  DiffGetChangedFilesInput as DiffGetChangedFilesInputSchema,
+  DiffGetLocalDiffInput as DiffGetLocalDiffInputSchema,
+  DiffGetFileContentInput as DiffGetFileContentInputSchema,
+} from "./diff";
 
 // ── WebSocket RPC Method Names ───────────────────────────────────────
 
@@ -168,6 +180,8 @@ const WebSocketRequestBody = Schema.Union([
   tagRequestBody(GITHUB_WS_METHODS.listPRs, GitHubPRListInput),
   tagRequestBody(GITHUB_WS_METHODS.getPRDetails, GitHubPRDetailsInput),
   tagRequestBody(GITHUB_WS_METHODS.refreshPRs, GitHubRefreshInput),
+  tagRequestBody(GITHUB_WS_METHODS.submitReview, GitHubSubmitReviewInput),
+  tagRequestBody(GITHUB_WS_METHODS.getReviewComments, GitHubGetReviewCommentsInput),
 
   // Worktree methods
   tagRequestBody(WORKTREE_WS_METHODS.create, WorktreeCreateInputSchema),
@@ -176,10 +190,23 @@ const WebSocketRequestBody = Schema.Union([
   tagRequestBody(WORKTREE_WS_METHODS.getDiskSize, WorktreeGetDiskSizeInputSchema),
   tagRequestBody(WORKTREE_WS_METHODS.getSettings, Schema.Struct({})),
   tagRequestBody(WORKTREE_WS_METHODS.updateSettings, WorktreeUpdateSettingsInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.checkLifecycle, WorktreeCheckLifecycleInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.detectIDEs, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.getIDESettings, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.updateIDESettings, IDEUpdateSettingsInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.openInIDE, WorktreeOpenInIDEInputSchema),
+  tagRequestBody(WORKTREE_WS_METHODS.healthCheck, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.getArborSettings, Schema.Struct({})),
+  tagRequestBody(WORKTREE_WS_METHODS.updateArborSettings, ArborUpdateSettingsInputSchema),
 
   // Review Context methods
   tagRequestBody(REVIEW_CONTEXT_WS_METHODS.detect, ReviewContextDetectInputSchema),
   tagRequestBody(REVIEW_CONTEXT_WS_METHODS.init, ReviewContextInitInputSchema),
+
+  // Diff methods
+  tagRequestBody(DIFF_WS_METHODS.getChangedFiles, DiffGetChangedFilesInputSchema),
+  tagRequestBody(DIFF_WS_METHODS.getLocalDiff, DiffGetLocalDiffInputSchema),
+  tagRequestBody(DIFF_WS_METHODS.getFileContent, DiffGetFileContentInputSchema),
 
   // Server meta
   tagRequestBody(WS_METHODS.serverGetConfig, Schema.Struct({})),

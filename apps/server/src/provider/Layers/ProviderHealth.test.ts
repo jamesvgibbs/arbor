@@ -66,7 +66,7 @@ function withTempCodexHome(configContent?: string) {
   return Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const tmpDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-test-codex-" });
+    const tmpDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "arbor-test-codex-" });
 
     yield* Effect.acquireRelease(
       Effect.sync(() => {

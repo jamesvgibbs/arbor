@@ -404,7 +404,7 @@ export function normalizeCodexModelSlug(
 export function buildCodexInitializeParams() {
   return {
     clientInfo: {
-      name: "t3code_desktop",
+      name: "arbor_desktop",
       title: "Arbor Desktop",
       version: "0.1.0",
     },

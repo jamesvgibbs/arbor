@@ -4,6 +4,7 @@ import {
   FolderIcon,
   FolderOpenIcon,
   GitPullRequestIcon,
+  LightbulbIcon,
   PlusIcon,
   RocketIcon,
   SettingsIcon,
@@ -33,7 +34,6 @@ import {
   ProjectId,
   ThreadId,
   type GitStatusResult,
-  type ResolvedKeybindingsConfig,
 } from "@arbortools/contracts";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
@@ -42,14 +42,17 @@ import { isElectron } from "../env";
 import { APP_STAGE_LABEL, APP_VERSION } from "../branding";
 import { isMacPlatform, newCommandId, newProjectId } from "../lib/utils";
 import { useStore } from "../store";
-import { shortcutLabelForCommand } from "../keybindings";
 import { derivePendingApprovals, derivePendingUserInputs } from "../session-logic";
 import { gitRemoveWorktreeMutationOptions, gitStatusQueryOptions } from "../lib/gitReactQuery";
-import { serverConfigQueryOptions } from "../lib/serverReactQuery";
+import { worktreeListQueryOptions } from "../lib/worktreeReactQuery";
 import { readNativeApi } from "../nativeApi";
 import { useComposerDraftStore } from "../composerDraftStore";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
+import { useStartThoughtExercise } from "../hooks/useStartThoughtExercise";
+import { isThoughtBranch } from "./ChatView.logic";
+import { ThoughtBranchPicker } from "./ThoughtBranchPicker";
 import { selectThreadTerminalState, useTerminalStateStore } from "../terminalStateStore";
+import { Menu, MenuTrigger, MenuPopup, MenuItem } from "./ui/menu";
 import { toastManager } from "./ui/toast";
 import {
   getArm64IntelBuildWarningDescription,
@@ -90,7 +93,6 @@ import {
   shouldClearThreadSelectionOnMouseDown,
 } from "./Sidebar.logic";
 
-const EMPTY_KEYBINDINGS: ResolvedKeybindingsConfig = [];
 const THREAD_PREVIEW_LIMIT = 6;
 
 async function copyTextToClipboard(text: string): Promise<void> {
@@ -168,18 +170,25 @@ function prStatusIndicator(pr: ThreadPr): PrStatusIndicator | null {
   return null;
 }
 
-function T3Wordmark() {
+function ArborIcon({ className }: { className?: string }) {
   return (
     <svg
-      aria-label="T3"
-      className="h-2.5 w-auto shrink-0 text-foreground"
-      viewBox="15.5309 37 94.3941 56.96"
+      aria-label="Arbor"
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
-        d="M33.4509 93V47.56H15.5309V37H64.3309V47.56H46.4109V93H33.4509ZM86.7253 93.96C82.832 93.96 78.9653 93.4533 75.1253 92.44C71.2853 91.3733 68.032 89.88 65.3653 87.96L70.4053 78.04C72.5386 79.5867 75.0186 80.8133 77.8453 81.72C80.672 82.6267 83.5253 83.08 86.4053 83.08C89.6586 83.08 92.2186 82.44 94.0853 81.16C95.952 79.88 96.8853 78.12 96.8853 75.88C96.8853 73.7467 96.0586 72.0667 94.4053 70.84C92.752 69.6133 90.0853 69 86.4053 69H80.4853V60.44L96.0853 42.76L97.5253 47.4H68.1653V37H107.365V45.4L91.8453 63.08L85.2853 59.32H89.0453C95.9253 59.32 101.125 60.8667 104.645 63.96C108.165 67.0533 109.925 71.0267 109.925 75.88C109.925 79.0267 109.099 81.9867 107.445 84.76C105.792 87.48 103.259 89.6933 99.8453 91.4C96.432 93.1067 92.0586 93.96 86.7253 93.96Z"
-        fill="currentColor"
+        d="M12 22V13M12 13L5 6M12 13V2M12 13L19 6"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
+      <circle cx="5" cy="6" r="3" fill="currentColor" />
+      <circle cx="12" cy="2" r="3" fill="currentColor" />
+      <circle cx="19" cy="6" r="3" fill="currentColor" />
     </svg>
   );
 }
@@ -279,18 +288,28 @@ export default function Sidebar() {
   const isOnSettings = useLocation({ select: (loc) => loc.pathname === "/settings" });
   const isOnGitHub = useLocation({ select: (loc) => loc.pathname === "/github" });
   const isOnSessions = useLocation({ select: (loc) => loc.pathname === "/sessions" });
+  const reviewProjectId = useLocation({
+    select: (loc) => {
+      const match = loc.pathname.match(/^\/review\/(.+)$/);
+      return match ? match[1] : null;
+    },
+  });
   const { settings: appSettings } = useAppSettings();
   const { handleNewThread } = useHandleNewThread();
   const routeThreadId = useParams({
     strict: false,
     select: (params) => (params.threadId ? ThreadId.makeUnsafe(params.threadId) : null),
   });
-  const { data: keybindings = EMPTY_KEYBINDINGS } = useQuery({
-    ...serverConfigQueryOptions(),
-    select: (config) => config.keybindings,
-  });
   const queryClient = useQueryClient();
   const removeWorktreeMutation = useMutation(gitRemoveWorktreeMutationOptions({ queryClient }));
+  const worktreeListQuery = useQuery(worktreeListQueryOptions());
+  const sessionByWorktreePath = useMemo(() => {
+    const map = new Map<string, import("@arbortools/contracts").WorktreeSessionWithSize>();
+    for (const s of worktreeListQuery.data?.sessions ?? []) {
+      map.set(s.worktreePath, s);
+    }
+    return map;
+  }, [worktreeListQuery.data]);
   const [addingProject, setAddingProject] = useState(false);
   const [newCwd, setNewCwd] = useState("");
   const [isPickingFolder, setIsPickingFolder] = useState(false);
@@ -313,6 +332,11 @@ export default function Sidebar() {
   const clearSelection = useThreadSelectionStore((s) => s.clearSelection);
   const removeFromSelection = useThreadSelectionStore((s) => s.removeFromSelection);
   const setSelectionAnchor = useThreadSelectionStore((s) => s.setAnchor);
+  const { startThoughtExercise } = useStartThoughtExercise();
+  const [thoughtPickerProjectId, setThoughtPickerProjectId] = useState<ProjectId | null>(null);
+  const thoughtPickerProject = thoughtPickerProjectId
+    ? projects.find((p) => p.id === thoughtPickerProjectId) ?? null
+    : null;
   const shouldBrowseForProjectImmediately = isElectron;
   const shouldShowProjectPathEntry = addingProject && !shouldBrowseForProjectImmediately;
   const projectCwdById = useMemo(
@@ -934,9 +958,14 @@ export default function Sidebar() {
       if (selectedThreadIds.size > 0) {
         clearSelection();
       }
-      toggleProject(projectId);
+      const project = projects.find((p) => p.id === projectId);
+      if (project && sessionByWorktreePath.has(project.cwd)) {
+        void navigate({ to: "/review/$projectId", params: { projectId } });
+      } else {
+        toggleProject(projectId);
+      }
     },
-    [clearSelection, selectedThreadIds.size, toggleProject],
+    [clearSelection, navigate, projects, selectedThreadIds.size, sessionByWorktreePath, toggleProject],
   );
 
   const handleProjectTitleKeyDown = useCallback(
@@ -1025,12 +1054,6 @@ export default function Sidebar() {
         : shouldHighlightDesktopUpdateError(desktopUpdateState)
           ? "text-rose-500 animate-pulse"
           : "text-amber-500 animate-pulse";
-  const newThreadShortcutLabel = useMemo(
-    () =>
-      shortcutLabelForCommand(keybindings, "chat.newLocal") ??
-      shortcutLabelForCommand(keybindings, "chat.new"),
-    [keybindings],
-  );
 
   const handleDesktopUpdateButtonClick = useCallback(() => {
     const bridge = window.desktopBridge;
@@ -1114,14 +1137,16 @@ export default function Sidebar() {
       <Tooltip>
         <TooltipTrigger
           render={
-            <div className="flex min-w-0 flex-1 items-center gap-1 ml-1 cursor-pointer">
-              <T3Wordmark />
-              <span className="truncate text-sm font-medium tracking-tight text-muted-foreground">
-                Code
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 ml-1 cursor-pointer">
+              <ArborIcon className="size-4 shrink-0 text-foreground" />
+              <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                Arbor
               </span>
-              <span className="rounded-full bg-muted/50 px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground/60">
-                {APP_STAGE_LABEL}
-              </span>
+              {APP_STAGE_LABEL && (
+                <span className="rounded-full bg-muted/50 px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-muted-foreground/60">
+                  {APP_STAGE_LABEL}
+                </span>
+              )}
             </div>
           }
         />
@@ -1318,7 +1343,7 @@ export default function Sidebar() {
                           <div className="group/project-header relative">
                             <SidebarMenuButton
                               size="sm"
-                              className="gap-2 px-2 py-1.5 text-left cursor-grab active:cursor-grabbing hover:bg-accent group-hover/project-header:bg-accent group-hover/project-header:text-sidebar-accent-foreground"
+                              className={`gap-2 px-2 py-1.5 text-left cursor-grab active:cursor-grabbing hover:bg-accent group-hover/project-header:bg-accent group-hover/project-header:text-sidebar-accent-foreground ${reviewProjectId === project.id ? "bg-accent text-sidebar-accent-foreground" : ""}`}
                               {...dragHandleProps.attributes}
                               {...dragHandleProps.listeners}
                               onPointerDownCapture={handleProjectTitlePointerDownCapture}
@@ -1332,18 +1357,30 @@ export default function Sidebar() {
                                 });
                               }}
                             >
-                              <ChevronRightIcon
-                                className={`-ml-0.5 size-3.5 shrink-0 text-muted-foreground/70 transition-transform duration-150 ${
-                                  project.expanded ? "rotate-90" : ""
-                                }`}
-                              />
+                              <button
+                                type="button"
+                                className="flex shrink-0 items-center"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleProject(project.id);
+                                }}
+                              >
+                                <ChevronRightIcon
+                                  className={`-ml-0.5 size-3.5 shrink-0 text-muted-foreground/70 transition-transform duration-150 ${
+                                    project.expanded ? "rotate-90" : ""
+                                  }`}
+                                />
+                              </button>
                               <ProjectFavicon cwd={project.cwd} />
                               <span className="flex-1 truncate text-xs font-medium text-foreground/90">
                                 {project.name}
                               </span>
+                              {sessionByWorktreePath.has(project.cwd) && (
+                                <GitPullRequestIcon className="size-3 shrink-0 text-muted-foreground/70" />
+                              )}
                             </SidebarMenuButton>
-                            <Tooltip>
-                              <TooltipTrigger
+                            <Menu>
+                              <MenuTrigger
                                 render={
                                   <SidebarMenuAction
                                     render={
@@ -1358,19 +1395,31 @@ export default function Sidebar() {
                                     onClick={(event) => {
                                       event.preventDefault();
                                       event.stopPropagation();
-                                      void handleNewThread(project.id);
                                     }}
                                   >
                                     <SquarePenIcon className="size-3.5" />
                                   </SidebarMenuAction>
                                 }
                               />
-                              <TooltipPopup side="top">
-                                {newThreadShortcutLabel
-                                  ? `New thread (${newThreadShortcutLabel})`
-                                  : "New thread"}
-                              </TooltipPopup>
-                            </Tooltip>
+                              <MenuPopup side="bottom" align="end" sideOffset={4}>
+                                <MenuItem
+                                  onClick={() => {
+                                    void handleNewThread(project.id);
+                                  }}
+                                >
+                                  <SquarePenIcon className="size-3.5" />
+                                  New Chat
+                                </MenuItem>
+                                <MenuItem
+                                  onClick={() => {
+                                    setThoughtPickerProjectId(project.id);
+                                  }}
+                                >
+                                  <LightbulbIcon className="size-3.5" />
+                                  New Thought
+                                </MenuItem>
+                              </MenuPopup>
+                            </Menu>
                           </div>
 
                           <CollapsibleContent keepMounted>
@@ -1469,6 +1518,9 @@ export default function Sidebar() {
                                               {prStatus.tooltip}
                                             </TooltipPopup>
                                           </Tooltip>
+                                        )}
+                                        {!prStatus && isThoughtBranch(thread.branch) && (
+                                          <LightbulbIcon className="size-3 shrink-0 text-amber-500" />
                                         )}
                                         {threadStatus && (
                                           <span
@@ -1650,6 +1702,19 @@ export default function Sidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      {thoughtPickerProject && (
+        <ThoughtBranchPicker
+          projectCwd={thoughtPickerProject.cwd}
+          open={thoughtPickerProjectId !== null}
+          onOpenChange={(open) => {
+            if (!open) setThoughtPickerProjectId(null);
+          }}
+          onConfirm={(baseBranch) => {
+            void startThoughtExercise(thoughtPickerProject.id, baseBranch);
+            setThoughtPickerProjectId(null);
+          }}
+        />
+      )}
     </>
   );
 }

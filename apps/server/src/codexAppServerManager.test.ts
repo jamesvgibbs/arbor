@@ -273,7 +273,7 @@ describe("startSession", () => {
   it("enables Codex experimental api capabilities during initialize", () => {
     expect(buildCodexInitializeParams()).toEqual({
       clientInfo: {
-        name: "t3code_desktop",
+        name: "arbor_desktop",
         title: "Arbor Desktop",
         version: "0.1.0",
       },

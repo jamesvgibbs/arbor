@@ -2,6 +2,7 @@ import {
   GITHUB_WS_METHODS,
   WORKTREE_WS_METHODS,
   REVIEW_CONTEXT_WS_METHODS,
+  DIFF_WS_METHODS,
   ORCHESTRATION_WS_CHANNELS,
   ORCHESTRATION_WS_METHODS,
   type ContextMenuItem,
@@ -189,6 +190,8 @@ export function createWsNativeApi(): NativeApi {
       listPRs: (input) => transport.request(GITHUB_WS_METHODS.listPRs, input),
       getPRDetails: (input) => transport.request(GITHUB_WS_METHODS.getPRDetails, input),
       refreshPRs: (input) => transport.request(GITHUB_WS_METHODS.refreshPRs, input),
+      submitReview: (input) => transport.request(GITHUB_WS_METHODS.submitReview, input),
+      getReviewComments: (input) => transport.request(GITHUB_WS_METHODS.getReviewComments, input),
     },
     worktree: {
       create: (input) => transport.request(WORKTREE_WS_METHODS.create, input),
@@ -197,10 +200,23 @@ export function createWsNativeApi(): NativeApi {
       getDiskSize: (input) => transport.request(WORKTREE_WS_METHODS.getDiskSize, input),
       getSettings: () => transport.request(WORKTREE_WS_METHODS.getSettings),
       updateSettings: (input) => transport.request(WORKTREE_WS_METHODS.updateSettings, input),
+      checkLifecycle: (input) => transport.request(WORKTREE_WS_METHODS.checkLifecycle, input),
+      detectIDEs: () => transport.request(WORKTREE_WS_METHODS.detectIDEs),
+      getIDESettings: () => transport.request(WORKTREE_WS_METHODS.getIDESettings),
+      updateIDESettings: (input) => transport.request(WORKTREE_WS_METHODS.updateIDESettings, input),
+      openInIDE: (input) => transport.request(WORKTREE_WS_METHODS.openInIDE, input),
+      healthCheck: () => transport.request(WORKTREE_WS_METHODS.healthCheck),
+      getArborSettings: () => transport.request(WORKTREE_WS_METHODS.getArborSettings),
+      updateArborSettings: (input) => transport.request(WORKTREE_WS_METHODS.updateArborSettings, input),
     },
     reviewContext: {
       detect: (input) => transport.request(REVIEW_CONTEXT_WS_METHODS.detect, input),
       init: (input) => transport.request(REVIEW_CONTEXT_WS_METHODS.init, input),
+    },
+    diff: {
+      getChangedFiles: (input) => transport.request(DIFF_WS_METHODS.getChangedFiles, input),
+      getLocalDiff: (input) => transport.request(DIFF_WS_METHODS.getLocalDiff, input),
+      getFileContent: (input) => transport.request(DIFF_WS_METHODS.getFileContent, input),
     },
   };
 

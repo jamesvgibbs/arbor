@@ -90,7 +90,7 @@ function resolvePullRequestWorktreeLocalBranchName(
 
   const sanitizedHeadBranch = sanitizeBranchFragment(pullRequest.headBranch).trim();
   const suffix = sanitizedHeadBranch.length > 0 ? sanitizedHeadBranch : "head";
-  return `t3code/pr-${pullRequest.number}/${suffix}`;
+  return `arbor/pr-${pullRequest.number}/${suffix}`;
 }
 
 function parseGitHubRepositoryNameWithOwnerFromRemoteUrl(url: string | null): string | null {
@@ -750,7 +750,7 @@ export const makeGitManager = Effect.gen(function* () {
         diffPatch: limitContext(rangeContext.diffPatch, 60_000),
       });
 
-      const bodyFile = path.join(tempDir, `t3code-pr-body-${process.pid}-${randomUUID()}.md`);
+      const bodyFile = path.join(tempDir, `arbor-pr-body-${process.pid}-${randomUUID()}.md`);
       yield* fileSystem
         .writeFileString(bodyFile, generated.body)
         .pipe(

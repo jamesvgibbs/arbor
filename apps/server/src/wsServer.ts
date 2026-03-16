@@ -20,6 +20,7 @@ import {
   GITHUB_WS_METHODS,
   WORKTREE_WS_METHODS,
   REVIEW_CONTEXT_WS_METHODS,
+  DIFF_WS_METHODS,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   ProjectId,
   ThreadId,
@@ -81,6 +82,7 @@ import { expandHomePath } from "./os-jank.ts";
 import { GitHubManager } from "./github/GitHubManager.ts";
 import { WorktreeManager } from "./worktree/WorktreeManager.ts";
 import { ReviewContextManager } from "./review-context/ReviewContextManager.ts";
+import { DiffService } from "./diff/DiffService.ts";
 import { makeServerPushBus } from "./wsServer/pushBus.ts";
 import { makeServerReadiness } from "./wsServer/readiness.ts";
 import { decodeJsonResult, formatSchemaError } from "@arbortools/shared/schemaJson";
@@ -107,7 +109,7 @@ export interface ServerShape {
 /**
  * Server - Service tag for HTTP/WebSocket lifecycle management.
  */
-export class Server extends ServiceMap.Service<Server, ServerShape>()("t3/wsServer/Server") {}
+export class Server extends ServiceMap.Service<Server, ServerShape>()("arbor/wsServer/Server") {}
 
 const isServerNotRunningError = (error: Error): boolean => {
   const maybeCode = (error as NodeJS.ErrnoException).code;
@@ -267,6 +269,7 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
   const githubManager = new GitHubManager(arborConfigDir);
   const worktreeManager = new WorktreeManager(arborConfigDir);
   const reviewContextManager = new ReviewContextManager();
+  const diffService = new DiffService(githubManager);
 
   const gitManager = yield* GitManager;
   const terminalManager = yield* TerminalManager;
@@ -974,6 +977,37 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         });
       }
 
+      case GITHUB_WS_METHODS.submitReview: {
+        const body = stripRequestTag(request.body);
+        console.log("[ws] submitReview body:", JSON.stringify({ owner: body.owner, repo: body.repo, prNumber: body.prNumber, event: body.event, hasComments: !!body.comments, commentCount: body.comments?.length }));
+        return yield* Effect.tryPromise({
+          try: () => {
+            const mappedComments = body.comments?.map((c: any) => ({
+              path: c.path,
+              body: c.body,
+              line: c.line,
+              side: c.side,
+              ...(c.startLine != null ? { start_line: c.startLine } : {}),
+              ...(c.startSide != null ? { start_side: c.startSide } : {}),
+            }));
+            console.log("[ws] submitReview mappedComments:", JSON.stringify(mappedComments));
+            return githubManager.submitReview(body.owner, body.repo, body.prNumber, body.body, body.event as "APPROVE" | "COMMENT" | "REQUEST_CHANGES", mappedComments);
+          },
+          catch: (cause) => {
+            console.error("[ws] submitReview error:", cause);
+            return new RouteRequestError({ message: `Failed to submit review: ${String(cause)}` });
+          },
+        });
+      }
+
+      case GITHUB_WS_METHODS.getReviewComments: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => githubManager.listReviewComments(body.owner, body.repo, body.prNumber),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get review comments: ${String(cause)}` }),
+        });
+      }
+
       // ── Worktree methods ───────────────────────────────────────────
       case WORKTREE_WS_METHODS.create: {
         const body = stripRequestTag(request.body);
@@ -1019,6 +1053,62 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         });
       }
 
+      case WORKTREE_WS_METHODS.checkLifecycle: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.checkLifecycle([...body.prStatuses]),
+          catch: (cause) => new RouteRequestError({ message: `Failed to check worktree lifecycle: ${String(cause)}` }),
+        });
+      }
+
+      case WORKTREE_WS_METHODS.detectIDEs:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.detectIDEs(),
+          catch: (cause) => new RouteRequestError({ message: `Failed to detect IDEs: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.getIDESettings:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.getIDESettings(),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get IDE settings: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.updateIDESettings: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.updateIDESettings(body),
+          catch: (cause) => new RouteRequestError({ message: `Failed to update IDE settings: ${String(cause)}` }),
+        });
+      }
+
+      case WORKTREE_WS_METHODS.openInIDE: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.openInIDE(body.worktreePath, body.ide),
+          catch: (cause) => new RouteRequestError({ message: `Failed to open in IDE: ${String(cause)}` }),
+        });
+      }
+
+      case WORKTREE_WS_METHODS.healthCheck:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.healthCheck(),
+          catch: (cause) => new RouteRequestError({ message: `Health check failed: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.getArborSettings:
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.getArborSettings(),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get Arbor settings: ${String(cause)}` }),
+        });
+
+      case WORKTREE_WS_METHODS.updateArborSettings: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => worktreeManager.updateArborSettings(body),
+          catch: (cause) => new RouteRequestError({ message: `Failed to update Arbor settings: ${String(cause)}` }),
+        });
+      }
+
       // ── Review Context methods ──────────────────────────────────────
       case REVIEW_CONTEXT_WS_METHODS.detect: {
         const body = stripRequestTag(request.body);
@@ -1031,8 +1121,33 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
       case REVIEW_CONTEXT_WS_METHODS.init: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
-          try: () => reviewContextManager.init(body),
+          try: () => reviewContextManager.init({ ...body, skipInit: body.skipInit ?? false }),
           catch: (cause) => new RouteRequestError({ message: `Failed to init review context: ${String(cause)}` }),
+        });
+      }
+
+      // ── Diff methods ────────────────────────────────────────────────
+      case DIFF_WS_METHODS.getChangedFiles: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => diffService.getChangedFiles(body.owner, body.repo, body.prNumber),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get changed files: ${String(cause)}` }),
+        });
+      }
+
+      case DIFF_WS_METHODS.getLocalDiff: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => diffService.getLocalDiff(body.worktreePath, body.baseBranch, body.filename),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get local diff: ${String(cause)}` }),
+        });
+      }
+
+      case DIFF_WS_METHODS.getFileContent: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => diffService.getFileContent(body.worktreePath, body.baseBranch, body.filename),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get file content: ${String(cause)}` }),
         });
       }
 
@@ -1060,10 +1175,19 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
       });
     }
 
+    // Extract the request ID from raw JSON before schema validation so we can
+    // always respond with the correct ID, even if decode fails.
+    let rawRequestId = "unknown";
+    try {
+      const parsed = JSON.parse(messageText);
+      if (typeof parsed?.id === "string") rawRequestId = parsed.id;
+    } catch { /* use "unknown" */ }
+
     const request = decodeWebSocketRequest(messageText);
     if (Result.isFailure(request)) {
+      console.error("[ws] schema decode failed:", formatSchemaError(request.failure));
       return yield* sendWsResponse({
-        id: "unknown",
+        id: rawRequestId,
         error: { message: `Invalid request format: ${formatSchemaError(request.failure)}` },
       });
     }

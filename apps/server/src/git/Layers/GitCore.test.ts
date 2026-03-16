@@ -889,26 +889,26 @@ it.layer(TestLayer)("git integration", (it) => {
       Effect.gen(function* () {
         const tmp = yield* makeTmpDir();
         yield* initRepoWithCommit(tmp);
-        yield* createGitBranch({ cwd: tmp, branch: "t3code/feat/session" });
-        yield* createGitBranch({ cwd: tmp, branch: "t3code/tmp-working" });
-        yield* checkoutGitBranch({ cwd: tmp, branch: "t3code/tmp-working" });
+        yield* createGitBranch({ cwd: tmp, branch: "arbor/feat/session" });
+        yield* createGitBranch({ cwd: tmp, branch: "arbor/tmp-working" });
+        yield* checkoutGitBranch({ cwd: tmp, branch: "arbor/tmp-working" });
 
         const renamed = yield* renameGitBranch({
           cwd: tmp,
-          oldBranch: "t3code/tmp-working",
-          newBranch: "t3code/feat/session",
+          oldBranch: "arbor/tmp-working",
+          newBranch: "arbor/feat/session",
         });
 
-        expect(renamed.branch).toBe("t3code/feat/session-1");
+        expect(renamed.branch).toBe("arbor/feat/session-1");
         const branches = yield* listGitBranches({ cwd: tmp });
-        expect(branches.branches.some((branch) => branch.name === "t3code/feat/session")).toBe(
+        expect(branches.branches.some((branch) => branch.name === "arbor/feat/session")).toBe(
           true,
         );
-        expect(branches.branches.some((branch) => branch.name === "t3code/feat/session-1")).toBe(
+        expect(branches.branches.some((branch) => branch.name === "arbor/feat/session-1")).toBe(
           true,
         );
         const current = branches.branches.find((branch) => branch.current);
-        expect(current?.name).toBe("t3code/feat/session-1");
+        expect(current?.name).toBe("arbor/feat/session-1");
       }),
     );
 
@@ -916,18 +916,18 @@ it.layer(TestLayer)("git integration", (it) => {
       Effect.gen(function* () {
         const tmp = yield* makeTmpDir();
         yield* initRepoWithCommit(tmp);
-        yield* createGitBranch({ cwd: tmp, branch: "t3code/feat/session" });
-        yield* createGitBranch({ cwd: tmp, branch: "t3code/feat/session-1" });
-        yield* createGitBranch({ cwd: tmp, branch: "t3code/tmp-working" });
-        yield* checkoutGitBranch({ cwd: tmp, branch: "t3code/tmp-working" });
+        yield* createGitBranch({ cwd: tmp, branch: "arbor/feat/session" });
+        yield* createGitBranch({ cwd: tmp, branch: "arbor/feat/session-1" });
+        yield* createGitBranch({ cwd: tmp, branch: "arbor/tmp-working" });
+        yield* checkoutGitBranch({ cwd: tmp, branch: "arbor/tmp-working" });
 
         const renamed = yield* renameGitBranch({
           cwd: tmp,
-          oldBranch: "t3code/tmp-working",
-          newBranch: "t3code/feat/session",
+          oldBranch: "arbor/tmp-working",
+          newBranch: "arbor/feat/session",
         });
 
-        expect(renamed.branch).toBe("t3code/feat/session-2");
+        expect(renamed.branch).toBe("arbor/feat/session-2");
       }),
     );
 
@@ -1328,12 +1328,12 @@ it.layer(TestLayer)("git integration", (it) => {
           yield* initRepoWithCommit(tmp);
           const core = yield* GitCore;
 
-          yield* git(tmp, ["remote", "add", "origin", "git@github.com:pingdotgg/t3code.git"]);
+          yield* git(tmp, ["remote", "add", "origin", "git@github.com:pingdotgg/arbor.git"]);
 
           const remoteName = yield* core.ensureRemote({
             cwd: tmp,
             preferredName: "origin",
-            url: "git@github.com:pingdotgg/t3code.git/",
+            url: "git@github.com:pingdotgg/arbor.git/",
           });
 
           expect(remoteName).toBe("origin");
@@ -1606,7 +1606,7 @@ it.layer(TestLayer)("git integration", (it) => {
           yield* git(tmp, [
             "checkout",
             "-b",
-            "t3code/pr-488/statemachine",
+            "arbor/pr-488/statemachine",
             "--track",
             "jasonLaster/statemachine",
           ]);
@@ -1628,29 +1628,23 @@ it.layer(TestLayer)("git integration", (it) => {
             yield* git(tmp, ["ls-remote", "--heads", "jasonLaster", "statemachine"]),
           ).toContain("statemachine");
           expect(
-            yield* git(tmp, ["ls-remote", "--heads", "jasonLaster", "t3code/pr-488/statemachine"]),
+            yield* git(tmp, ["ls-remote", "--heads", "jasonLaster", "arbor/pr-488/statemachine"]),
           ).toBe("");
         }),
     );
 
-    it.effect("includes command context when worktree removal fails", () =>
+    it.effect("falls back to prune when worktree path does not exist", () =>
       Effect.gen(function* () {
         const tmp = yield* makeTmpDir();
         yield* initRepoWithCommit(tmp);
         const core = yield* GitCore;
         const missingWorktreePath = path.join(tmp, "missing-worktree");
 
+        // Should succeed by falling back to `git worktree prune`
         const removeResult = yield* Effect.result(
           core.removeWorktree({ cwd: tmp, path: missingWorktreePath }),
         );
-        expect(removeResult._tag).toBe("Failure");
-        if (removeResult._tag !== "Failure") {
-          return;
-        }
-        const message = removeResult.failure.message;
-        expect(message).toContain("git worktree remove");
-        expect(message).toContain(`cwd: ${tmp}`);
-        expect(message).toContain(missingWorktreePath);
+        expect(removeResult._tag).toBe("Success");
       }),
     );
 
