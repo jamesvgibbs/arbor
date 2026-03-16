@@ -191,6 +191,7 @@ export function createWsNativeApi(): NativeApi {
       getPRDetails: (input) => transport.request(GITHUB_WS_METHODS.getPRDetails, input),
       refreshPRs: (input) => transport.request(GITHUB_WS_METHODS.refreshPRs, input),
       submitReview: (input) => transport.request(GITHUB_WS_METHODS.submitReview, input),
+      getReviewComments: (input) => transport.request(GITHUB_WS_METHODS.getReviewComments, input),
     },
     worktree: {
       create: (input) => transport.request(WORKTREE_WS_METHODS.create, input),
@@ -215,6 +216,7 @@ export function createWsNativeApi(): NativeApi {
     diff: {
       getChangedFiles: (input) => transport.request(DIFF_WS_METHODS.getChangedFiles, input),
       getLocalDiff: (input) => transport.request(DIFF_WS_METHODS.getLocalDiff, input),
+      getFileContent: (input) => transport.request(DIFF_WS_METHODS.getFileContent, input),
     },
   };
 

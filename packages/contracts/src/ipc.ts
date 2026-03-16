@@ -58,6 +58,8 @@ import type {
   GitHubPRDetailsInput,
   GitHubRefreshInput,
   GitHubSubmitReviewInput,
+  GitHubGetReviewCommentsInput,
+  GitHubGetReviewCommentsResult,
 } from "./github";
 import type {
   WorktreeCreateInput,
@@ -89,6 +91,8 @@ import type {
   DiffGetChangedFilesResult,
   DiffGetLocalDiffInput,
   DiffGetLocalDiffResult,
+  DiffGetFileContentInput,
+  DiffGetFileContentResult,
 } from "./diff";
 import { EditorId } from "./editor";
 
@@ -227,6 +231,7 @@ export interface NativeApi {
     getPRDetails: (input: GitHubPRDetailsInput) => Promise<any>;
     refreshPRs: (input: GitHubRefreshInput) => Promise<GitHubPRListResult>;
     submitReview: (input: GitHubSubmitReviewInput) => Promise<{ ok: true }>;
+    getReviewComments: (input: GitHubGetReviewCommentsInput) => Promise<GitHubGetReviewCommentsResult>;
   };
   worktree: {
     create: (input: WorktreeCreateInput) => Promise<WorktreeCreateResult>;
@@ -251,5 +256,6 @@ export interface NativeApi {
   diff: {
     getChangedFiles: (input: DiffGetChangedFilesInput) => Promise<DiffGetChangedFilesResult>;
     getLocalDiff: (input: DiffGetLocalDiffInput) => Promise<DiffGetLocalDiffResult>;
+    getFileContent: (input: DiffGetFileContentInput) => Promise<DiffGetFileContentResult>;
   };
 }

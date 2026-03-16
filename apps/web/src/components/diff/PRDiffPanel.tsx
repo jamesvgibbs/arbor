@@ -1,8 +1,10 @@
-import { parsePatchFiles } from "@pierre/diffs";
+import { parsePatchFiles, parseDiffFromFile } from "@pierre/diffs";
 import type { DiffLineAnnotation, AnnotationSide } from "@pierre/diffs/react";
 import { FileDiff, Virtualizer, GutterUtilitySlotStyles } from "@pierre/diffs/react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { MessageSquarePlusIcon, Trash2Icon } from "lucide-react";
+import type { GitHubPRReviewComment } from "@arbortools/contracts";
+import { GitHubCommentDisplay } from "./GitHubCommentDisplay";
 
 interface SelectedLineRange {
   start: number;
@@ -17,8 +19,10 @@ import type { PendingComment, CommentDraft } from "../../hooks/useInlineComments
 type DiffThemeType = "light" | "dark";
 
 interface CommentAnnotationMetadata {
-  type: "draft" | "pending";
-  comment?: PendingComment;
+  type: "draft" | "pending" | "github";
+  comment?: PendingComment | undefined;
+  githubComment?: GitHubPRReviewComment | undefined;
+  githubReplies?: GitHubPRReviewComment[] | undefined;
 }
 
 const DIFF_PANEL_CSS = `
@@ -75,6 +79,9 @@ interface PRDiffPanelProps {
   onSubmitComment?: ((body: string) => void) | undefined;
   onCancelComment?: (() => void) | undefined;
   onRemoveComment?: ((id: string) => void) | undefined;
+  githubComments?: readonly GitHubPRReviewComment[] | undefined;
+  oldFileContent?: string | undefined;
+  newFileContent?: string | undefined;
 }
 
 export function PRDiffPanel({
@@ -90,10 +97,24 @@ export function PRDiffPanel({
   onSubmitComment,
   onCancelComment,
   onRemoveComment,
+  githubComments = [],
+  oldFileContent,
+  newFileContent,
 }: PRDiffPanelProps) {
   const { resolvedTheme } = useTheme();
 
   const renderableFiles = useMemo(() => {
+    if (oldFileContent !== undefined && newFileContent !== undefined && filename) {
+      try {
+        const fileDiff = parseDiffFromFile(
+          { name: filename, contents: oldFileContent },
+          { name: filename, contents: newFileContent },
+        );
+        return [fileDiff];
+      } catch {
+        // Fall through to patch parsing
+      }
+    }
     if (!diff || diff.trim().length === 0) return [];
     try {
       const parsed = parsePatchFiles(
@@ -104,9 +125,9 @@ export function PRDiffPanel({
     } catch {
       return [];
     }
-  }, [diff, resolvedTheme]);
+  }, [diff, oldFileContent, newFileContent, filename, resolvedTheme]);
 
-  // Build line annotations for pending comments and active draft
+  // Build line annotations for pending comments, active draft, and GitHub comments
   const lineAnnotations = useMemo(() => {
     const annotations: DiffLineAnnotation<CommentAnnotationMetadata>[] = [];
 
@@ -128,8 +149,31 @@ export function PRDiffPanel({
       });
     }
 
+    // Add GitHub review comments as annotations (group threads)
+    const topLevelComments = githubComments.filter((c) => !c.inReplyToId);
+    const replyMap = new Map<number, GitHubPRReviewComment[]>();
+    for (const c of githubComments) {
+      if (c.inReplyToId) {
+        const existing = replyMap.get(c.inReplyToId) ?? [];
+        existing.push(c);
+        replyMap.set(c.inReplyToId, existing);
+      }
+    }
+
+    for (const gc of topLevelComments) {
+      annotations.push({
+        side: gc.side === "LEFT" ? "deletions" : "additions",
+        lineNumber: gc.line,
+        metadata: {
+          type: "github",
+          githubComment: gc,
+          githubReplies: replyMap.get(gc.id),
+        },
+      });
+    }
+
     return annotations;
-  }, [pendingComments, activeDraft, filename]);
+  }, [pendingComments, activeDraft, filename, githubComments]);
 
   const handleGutterUtilityClick = useCallback(
     (range: SelectedLineRange) => {
@@ -168,6 +212,15 @@ export function PRDiffPanel({
           <PendingCommentDisplay
             comment={comment}
             onRemove={() => onRemoveComment?.(comment.id)}
+          />
+        );
+      }
+
+      if (annotation.metadata.type === "github" && annotation.metadata.githubComment) {
+        return (
+          <GitHubCommentDisplay
+            comment={annotation.metadata.githubComment}
+            replies={annotation.metadata.githubReplies}
           />
         );
       }
@@ -254,6 +307,9 @@ export function PRDiffPanel({
                       enableGutterUtility: true,
                       enableLineSelection: true,
                       onGutterUtilityClick: handleGutterUtilityClick,
+                      ...(fileDiff.isPartial === false
+                        ? { expansionLineCount: 20 }
+                        : {}),
                     }}
                   />
                 </div>

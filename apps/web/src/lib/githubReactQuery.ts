@@ -1,4 +1,4 @@
-import type { GitHubPRListResult, GitHubRepoConfig, GitHubAuthStatus } from "@arbortools/contracts";
+import type { GitHubPRListResult, GitHubRepoConfig, GitHubAuthStatus, GitHubGetReviewCommentsResult } from "@arbortools/contracts";
 import { queryOptions, mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { ensureNativeApi } from "../nativeApi";
 
@@ -10,6 +10,8 @@ export const githubQueryKeys = {
   authStatus: () => ["github", "authStatus"] as const,
   repos: () => ["github", "repos"] as const,
   prs: (owner: string, repo: string) => ["github", "prs", owner, repo] as const,
+  reviewComments: (owner: string, repo: string, prNumber: number) =>
+    ["github", "reviewComments", owner, repo, prNumber] as const,
 };
 
 export function invalidateGitHubQueries(queryClient: QueryClient) {
@@ -127,6 +129,26 @@ export function githubRefreshPRsMutationOptions(input: { queryClient: QueryClien
         queryKey: githubQueryKeys.prs(variables.owner, variables.repo),
       });
     },
+  });
+}
+
+export function githubReviewCommentsQueryOptions(
+  input: { owner: string; repo: string; prNumber: number } | null,
+) {
+  return queryOptions({
+    queryKey: githubQueryKeys.reviewComments(
+      input?.owner ?? "",
+      input?.repo ?? "",
+      input?.prNumber ?? 0,
+    ),
+    queryFn: async (): Promise<GitHubGetReviewCommentsResult> => {
+      if (!input) throw new Error("Missing input");
+      const api = ensureNativeApi();
+      return api.github.getReviewComments(input);
+    },
+    enabled: input !== null,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 }
 

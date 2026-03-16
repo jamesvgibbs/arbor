@@ -1,6 +1,8 @@
 import type {
   DiffGetChangedFilesInput,
   DiffGetChangedFilesResult,
+  DiffGetFileContentInput,
+  DiffGetFileContentResult,
   DiffGetLocalDiffInput,
   DiffGetLocalDiffResult,
 } from "@arbortools/contracts";
@@ -13,6 +15,8 @@ export const diffQueryKeys = {
     ["diff", "changedFiles", owner, repo, prNumber] as const,
   localDiff: (worktreePath: string, baseBranch: string, filename?: string) =>
     ["diff", "localDiff", worktreePath, baseBranch, filename ?? "__all__"] as const,
+  fileContent: (worktreePath: string, baseBranch: string, filename: string) =>
+    ["diff", "fileContent", worktreePath, baseBranch, filename] as const,
 };
 
 export function diffChangedFilesQueryOptions(
@@ -50,5 +54,24 @@ export function diffLocalDiffQueryOptions(
     },
     enabled: input !== null,
     staleTime: 30_000,
+  });
+}
+
+export function diffFileContentQueryOptions(
+  input: DiffGetFileContentInput | null,
+) {
+  return queryOptions({
+    queryKey: diffQueryKeys.fileContent(
+      input?.worktreePath ?? "",
+      input?.baseBranch ?? "",
+      input?.filename ?? "",
+    ),
+    queryFn: async (): Promise<DiffGetFileContentResult> => {
+      if (!input) throw new Error("Missing input");
+      const api = ensureNativeApi();
+      return api.diff.getFileContent(input);
+    },
+    enabled: input !== null,
+    staleTime: 60_000,
   });
 }

@@ -1,7 +1,10 @@
 import { exec } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { promisify } from "node:util";
 import type {
   DiffGetChangedFilesResult,
+  DiffGetFileContentResult,
   DiffGetLocalDiffResult,
   PRChangedFile,
 } from "@arbortools/contracts";
@@ -57,6 +60,34 @@ export class DiffService {
     });
 
     return { diff: stdout };
+  }
+
+  async getFileContent(
+    worktreePath: string,
+    baseBranch: string,
+    filename: string,
+  ): Promise<DiffGetFileContentResult> {
+    const mergeBase = await this.getMergeBase(worktreePath, baseBranch);
+
+    let oldContent = "";
+    try {
+      const { stdout } = await execAsync(
+        `git show ${mergeBase}:${filename}`,
+        { cwd: worktreePath, maxBuffer: 10 * 1024 * 1024 },
+      );
+      oldContent = stdout;
+    } catch {
+      // New file — old content is empty
+    }
+
+    let newContent = "";
+    try {
+      newContent = await readFile(join(worktreePath, filename), "utf-8");
+    } catch {
+      // Deleted file — new content is empty
+    }
+
+    return { oldContent, newContent };
   }
 
   private async getMergeBase(

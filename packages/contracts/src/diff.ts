@@ -39,9 +39,23 @@ export const DiffGetLocalDiffResult = Schema.Struct({
 });
 export type DiffGetLocalDiffResult = typeof DiffGetLocalDiffResult.Type;
 
+export const DiffGetFileContentInput = Schema.Struct({
+  worktreePath: Schema.String,
+  baseBranch: Schema.String,
+  filename: Schema.String,
+});
+export type DiffGetFileContentInput = typeof DiffGetFileContentInput.Type;
+
+export const DiffGetFileContentResult = Schema.Struct({
+  oldContent: Schema.String,
+  newContent: Schema.String,
+});
+export type DiffGetFileContentResult = typeof DiffGetFileContentResult.Type;
+
 // ── WS Method names ─────────────────────────────────────────────────
 
 export const DIFF_WS_METHODS = {
   getChangedFiles: "diff.getChangedFiles",
   getLocalDiff: "diff.getLocalDiff",
+  getFileContent: "diff.getFileContent",
 } as const;

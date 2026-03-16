@@ -3,7 +3,7 @@ import { GitHubService } from "./GitHubService";
 import { RepoStore } from "./RepoStore";
 import { TokenStore } from "./TokenStore";
 import { PRCache } from "./PRCache";
-import type { GitHubPRFileResponse } from "./GitHubService";
+import type { GitHubPRFileResponse, GitHubPRReviewCommentResponse } from "./GitHubService";
 import type { PRCard, PRDetails, RepoConfig } from "./types";
 
 const GITHUB_CLIENT_ID =
@@ -163,6 +163,46 @@ export class GitHubManager {
   ): Promise<GitHubPRFileResponse[]> {
     const service = await this.getGitHubService();
     return service.listPRFiles(owner, repo, prNumber);
+  }
+
+  async listReviewComments(
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<{
+    comments: Array<{
+      id: number;
+      path: string;
+      line: number;
+      side: "LEFT" | "RIGHT";
+      body: string;
+      author: string;
+      authorAvatarUrl: string;
+      createdAt: string;
+      startLine?: number;
+      startSide?: "LEFT" | "RIGHT";
+      inReplyToId?: number;
+    }>;
+  }> {
+    const service = await this.getGitHubService();
+    const raw = await service.listReviewComments(owner, repo, prNumber);
+    return {
+      comments: raw
+        .filter((c) => c.line != null || c.original_line != null)
+        .map((c) => ({
+          id: c.id,
+          path: c.path,
+          line: (c.line ?? c.original_line)!,
+          side: c.side,
+          body: c.body,
+          author: c.user.login,
+          authorAvatarUrl: c.user.avatar_url,
+          createdAt: c.created_at,
+          ...(c.start_line != null ? { startLine: c.start_line } : {}),
+          ...(c.start_side != null ? { startSide: c.start_side } : {}),
+          ...(c.in_reply_to_id != null ? { inReplyToId: c.in_reply_to_id } : {}),
+        })),
+    };
   }
 
   async submitReview(

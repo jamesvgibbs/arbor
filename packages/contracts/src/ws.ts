@@ -46,6 +46,7 @@ import {
   GitHubPRDetailsInput,
   GitHubRefreshInput,
   GitHubSubmitReviewInput,
+  GitHubGetReviewCommentsInput,
 } from "./github";
 import {
   WORKTREE_WS_METHODS,
@@ -67,6 +68,7 @@ import {
   DIFF_WS_METHODS,
   DiffGetChangedFilesInput as DiffGetChangedFilesInputSchema,
   DiffGetLocalDiffInput as DiffGetLocalDiffInputSchema,
+  DiffGetFileContentInput as DiffGetFileContentInputSchema,
 } from "./diff";
 
 // ── WebSocket RPC Method Names ───────────────────────────────────────
@@ -179,6 +181,7 @@ const WebSocketRequestBody = Schema.Union([
   tagRequestBody(GITHUB_WS_METHODS.getPRDetails, GitHubPRDetailsInput),
   tagRequestBody(GITHUB_WS_METHODS.refreshPRs, GitHubRefreshInput),
   tagRequestBody(GITHUB_WS_METHODS.submitReview, GitHubSubmitReviewInput),
+  tagRequestBody(GITHUB_WS_METHODS.getReviewComments, GitHubGetReviewCommentsInput),
 
   // Worktree methods
   tagRequestBody(WORKTREE_WS_METHODS.create, WorktreeCreateInputSchema),
@@ -203,6 +206,7 @@ const WebSocketRequestBody = Schema.Union([
   // Diff methods
   tagRequestBody(DIFF_WS_METHODS.getChangedFiles, DiffGetChangedFilesInputSchema),
   tagRequestBody(DIFF_WS_METHODS.getLocalDiff, DiffGetLocalDiffInputSchema),
+  tagRequestBody(DIFF_WS_METHODS.getFileContent, DiffGetFileContentInputSchema),
 
   // Server meta
   tagRequestBody(WS_METHODS.serverGetConfig, Schema.Struct({})),

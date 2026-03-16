@@ -1000,6 +1000,14 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         });
       }
 
+      case GITHUB_WS_METHODS.getReviewComments: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => githubManager.listReviewComments(body.owner, body.repo, body.prNumber),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get review comments: ${String(cause)}` }),
+        });
+      }
+
       // ── Worktree methods ───────────────────────────────────────────
       case WORKTREE_WS_METHODS.create: {
         const body = stripRequestTag(request.body);
@@ -1132,6 +1140,14 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         return yield* Effect.tryPromise({
           try: () => diffService.getLocalDiff(body.worktreePath, body.baseBranch, body.filename),
           catch: (cause) => new RouteRequestError({ message: `Failed to get local diff: ${String(cause)}` }),
+        });
+      }
+
+      case DIFF_WS_METHODS.getFileContent: {
+        const body = stripRequestTag(request.body);
+        return yield* Effect.tryPromise({
+          try: () => diffService.getFileContent(body.worktreePath, body.baseBranch, body.filename),
+          catch: (cause) => new RouteRequestError({ message: `Failed to get file content: ${String(cause)}` }),
         });
       }
 

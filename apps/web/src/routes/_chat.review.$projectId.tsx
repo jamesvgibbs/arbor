@@ -23,6 +23,7 @@ import { worktreeListQueryOptions } from "../lib/worktreeReactQuery";
 import { githubSubmitReviewMutationOptions } from "../lib/githubReactQuery";
 import { newThreadId } from "../lib/utils";
 import { useInlineComments } from "../hooks/useInlineComments";
+import { useGitHubComments } from "../hooks/useGitHubComments";
 import { SidebarInset, SidebarTrigger } from "~/components/ui/sidebar";
 import {
   ResizablePanelGroup,
@@ -119,6 +120,11 @@ function ReviewRouteView() {
     toGitHubComments,
   } = useInlineComments(`${owner}/${repo}#${matchingSession?.prNumber ?? 0}`);
 
+  const {
+    comments: githubReviewComments,
+    refetch: refetchGitHubComments,
+  } = useGitHubComments(owner, repo, matchingSession?.prNumber ?? 0);
+
   const handleApprove = useCallback(() => {
     if (!matchingSession) return;
     const comments = toGitHubComments();
@@ -136,12 +142,13 @@ function ReviewRouteView() {
         setReviewComment("");
         setShowCommentInput(false);
         clearAll();
+        void refetchGitHubComments();
       },
       onError: (err) => {
         console.error("[review] approve failed:", err);
       },
     });
-  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll]);
+  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll, refetchGitHubComments]);
 
   const handleComment = useCallback(() => {
     if (!matchingSession) return;
@@ -161,12 +168,13 @@ function ReviewRouteView() {
         setReviewComment("");
         setShowCommentInput(false);
         clearAll();
+        void refetchGitHubComments();
       },
       onError: (err) => {
         console.error("[review] comment failed:", err);
       },
     });
-  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll]);
+  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll, refetchGitHubComments]);
 
   if (!project || !matchingSession || !threadId) {
     return null;
@@ -264,6 +272,7 @@ function ReviewRouteView() {
                 onSubmitComment={submitComment}
                 onCancelComment={cancelComment}
                 onRemoveComment={removeComment}
+                githubComments={githubReviewComments}
               />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import type { WorktreeSessionWithSize } from "@arbortools/contracts";
+import type { WorktreeSessionWithSize, GitHubPRReviewComment } from "@arbortools/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { RefreshCwIcon } from "lucide-react";
@@ -8,6 +8,7 @@ import { PRDiffPanel } from "./PRDiffPanel";
 import {
   diffChangedFilesQueryOptions,
   diffLocalDiffQueryOptions,
+  diffFileContentQueryOptions,
 } from "../../lib/diffPrReactQuery";
 import type { PendingComment, CommentDraft } from "../../hooks/useInlineComments";
 
@@ -20,6 +21,7 @@ interface PRDiffViewerProps {
   onCancelComment?: (() => void) | undefined;
   onRemoveComment?: ((id: string) => void) | undefined;
   onAskClaude?: ((prompt: string) => void) | undefined;
+  githubComments?: readonly GitHubPRReviewComment[] | undefined;
 }
 
 export function PRDiffViewer({
@@ -30,6 +32,7 @@ export function PRDiffViewer({
   onSubmitComment,
   onCancelComment,
   onRemoveComment,
+  githubComments = [],
 }: PRDiffViewerProps) {
   const [owner = "", repo = ""] = session.repoSlug.split("/");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -65,8 +68,21 @@ export function PRDiffViewer({
     ),
   );
 
+  const fileContentQuery = useQuery(
+    diffFileContentQueryOptions(
+      selectedFile
+        ? {
+            worktreePath: session.worktreePath,
+            baseBranch: session.baseBranch,
+            filename: selectedFile,
+          }
+        : null,
+    ),
+  );
+
   // Filter comments for the currently selected file
   const fileComments = pendingComments.filter((c) => c.path === selectedFile);
+  const fileGithubComments = githubComments.filter((c) => c.path === selectedFile);
 
   if (changedFilesQuery.isLoading) {
     return (
@@ -129,6 +145,9 @@ export function PRDiffViewer({
         onSubmitComment={onSubmitComment}
         onCancelComment={onCancelComment}
         onRemoveComment={onRemoveComment}
+        githubComments={fileGithubComments}
+        oldFileContent={fileContentQuery.data?.oldContent}
+        newFileContent={fileContentQuery.data?.newContent}
       />
     </div>
   );

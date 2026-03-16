@@ -165,6 +165,32 @@ export class GitHubService {
   }
 
   /**
+   * List review comments on a pull request, handling pagination.
+   */
+  async listReviewComments(
+    owner: string,
+    repo: string,
+    prNumber: number,
+  ): Promise<GitHubPRReviewCommentResponse[]> {
+    const perPage = 100;
+    let page = 1;
+    const allComments: GitHubPRReviewCommentResponse[] = [];
+
+    while (true) {
+      const batch = await this.get<GitHubPRReviewCommentResponse[]>(
+        `/repos/${owner}/${repo}/pulls/${prNumber}/comments?per_page=${perPage}&page=${page}`,
+      );
+
+      allComments.push(...batch);
+
+      if (batch.length < perPage) break;
+      page++;
+    }
+
+    return allComments;
+  }
+
+  /**
    * Submit a review on a pull request, optionally with inline comments.
    */
   async submitReview(
@@ -245,6 +271,23 @@ export class GitHubService {
 
 type CIStatus = PRCard["ciStatus"];
 type ReviewStatus = PRCard["reviewStatus"];
+
+export interface GitHubPRReviewCommentResponse {
+  id: number;
+  path: string;
+  line: number | null;
+  original_line: number | null;
+  side: "LEFT" | "RIGHT";
+  body: string;
+  user: {
+    login: string;
+    avatar_url: string;
+  };
+  created_at: string;
+  start_line: number | null;
+  start_side: "LEFT" | "RIGHT" | null;
+  in_reply_to_id?: number;
+}
 
 export interface GitHubPRFileResponse {
   sha: string;
