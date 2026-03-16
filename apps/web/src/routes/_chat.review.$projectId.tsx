@@ -12,6 +12,7 @@ import {
   CheckIcon,
   MessageSquareIcon,
   Loader2Icon,
+  SendIcon,
 } from "lucide-react";
 
 import ChatView from "../components/ChatView";
@@ -21,6 +22,7 @@ import { useStore } from "../store";
 import { worktreeListQueryOptions } from "../lib/worktreeReactQuery";
 import { githubSubmitReviewMutationOptions } from "../lib/githubReactQuery";
 import { newThreadId } from "../lib/utils";
+import { useInlineComments } from "../hooks/useInlineComments";
 import { SidebarInset, SidebarTrigger } from "~/components/ui/sidebar";
 import {
   ResizablePanelGroup,
@@ -106,37 +108,65 @@ function ReviewRouteView() {
   const [reviewComment, setReviewComment] = useState("");
   const [showCommentInput, setShowCommentInput] = useState(false);
 
+  const {
+    pendingComments,
+    activeDraft,
+    startComment,
+    cancelComment,
+    submitComment,
+    removeComment,
+    clearAll,
+    toGitHubComments,
+  } = useInlineComments(`${owner}/${repo}#${matchingSession?.prNumber ?? 0}`);
+
   const handleApprove = useCallback(() => {
     if (!matchingSession) return;
-    submitReviewMutation.mutate({
+    const comments = toGitHubComments();
+    const params = {
       owner,
       repo,
       prNumber: matchingSession.prNumber,
       body: reviewComment || "",
-      event: "APPROVE",
-    }, {
+      event: "APPROVE" as const,
+      ...(comments.length > 0 ? { comments } : {}),
+    };
+    console.log("[review] submitting approve:", params);
+    submitReviewMutation.mutate(params, {
       onSuccess: () => {
         setReviewComment("");
         setShowCommentInput(false);
+        clearAll();
+      },
+      onError: (err) => {
+        console.error("[review] approve failed:", err);
       },
     });
-  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation]);
+  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll]);
 
   const handleComment = useCallback(() => {
-    if (!matchingSession || !reviewComment.trim()) return;
-    submitReviewMutation.mutate({
+    if (!matchingSession) return;
+    const comments = toGitHubComments();
+    if (!reviewComment.trim() && comments.length === 0) return;
+    const params = {
       owner,
       repo,
       prNumber: matchingSession.prNumber,
-      body: reviewComment,
-      event: "COMMENT",
-    }, {
+      body: reviewComment || "",
+      event: "COMMENT" as const,
+      ...(comments.length > 0 ? { comments } : {}),
+    };
+    console.log("[review] submitting comment:", params);
+    submitReviewMutation.mutate(params, {
       onSuccess: () => {
         setReviewComment("");
         setShowCommentInput(false);
+        clearAll();
+      },
+      onError: (err) => {
+        console.error("[review] comment failed:", err);
       },
     });
-  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation]);
+  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll]);
 
   if (!project || !matchingSession || !threadId) {
     return null;
@@ -184,6 +214,21 @@ function ReviewRouteView() {
                   )}
                   Approve
                 </button>
+                {pendingComments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleComment}
+                    disabled={submitReviewMutation.isPending}
+                    className="inline-flex items-center gap-1 rounded-md border border-blue-600/40 bg-blue-600/10 px-2.5 py-1 text-[11px] font-medium text-blue-600 transition-colors hover:bg-blue-600/20 disabled:opacity-50"
+                  >
+                    {submitReviewMutation.isPending ? (
+                      <Loader2Icon className="size-3 animate-spin" />
+                    ) : (
+                      <SendIcon className="size-3" />
+                    )}
+                    Submit review ({pendingComments.length})
+                  </button>
+                )}
               </div>
             </div>
             {showCommentInput && (
@@ -195,7 +240,7 @@ function ReviewRouteView() {
                   placeholder="Leave a review comment..."
                   className="min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && reviewComment.trim()) {
+                    if (e.key === "Enter" && (reviewComment.trim() || pendingComments.length > 0)) {
                       handleComment();
                     }
                   }}
@@ -203,7 +248,7 @@ function ReviewRouteView() {
                 <button
                   type="button"
                   onClick={handleComment}
-                  disabled={!reviewComment.trim() || submitReviewMutation.isPending}
+                  disabled={(!reviewComment.trim() && pendingComments.length === 0) || submitReviewMutation.isPending}
                   className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
                 >
                   Submit
@@ -211,7 +256,15 @@ function ReviewRouteView() {
               </div>
             )}
             <div className="min-h-0 flex-1 overflow-hidden">
-              <PRDiffViewer session={matchingSession} />
+              <PRDiffViewer
+                session={matchingSession}
+                pendingComments={pendingComments}
+                activeDraft={activeDraft}
+                onStartComment={startComment}
+                onSubmitComment={submitComment}
+                onCancelComment={cancelComment}
+                onRemoveComment={removeComment}
+              />
             </div>
           </div>
         </ResizablePanel>

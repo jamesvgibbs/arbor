@@ -116,12 +116,23 @@ export type GitHubRefreshInput = typeof GitHubRefreshInput.Type;
 
 // ── Submit Review ────────────────────────────────────────────────────
 
+export const GitHubReviewComment = Schema.Struct({
+  path: Schema.String,
+  body: Schema.String,
+  line: Schema.Number,
+  side: Schema.String,
+  startLine: Schema.optional(Schema.Number),
+  startSide: Schema.optional(Schema.String),
+});
+export type GitHubReviewComment = typeof GitHubReviewComment.Type;
+
 export const GitHubSubmitReviewInput = Schema.Struct({
   owner: Schema.String,
   repo: Schema.String,
   prNumber: Schema.Number,
   body: Schema.String,
-  event: Schema.Literal("APPROVE", "COMMENT", "REQUEST_CHANGES"),
+  event: Schema.Union([Schema.Literal("APPROVE"), Schema.Literal("COMMENT"), Schema.Literal("REQUEST_CHANGES")]),
+  comments: Schema.optional(Schema.Array(GitHubReviewComment)),
 });
 export type GitHubSubmitReviewInput = typeof GitHubSubmitReviewInput.Type;
 

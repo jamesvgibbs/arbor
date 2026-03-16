@@ -979,9 +979,24 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
 
       case GITHUB_WS_METHODS.submitReview: {
         const body = stripRequestTag(request.body);
+        console.log("[ws] submitReview body:", JSON.stringify({ owner: body.owner, repo: body.repo, prNumber: body.prNumber, event: body.event, hasComments: !!body.comments, commentCount: body.comments?.length }));
         return yield* Effect.tryPromise({
-          try: () => githubManager.submitReview(body.owner, body.repo, body.prNumber, body.body, body.event),
-          catch: (cause) => new RouteRequestError({ message: `Failed to submit review: ${String(cause)}` }),
+          try: () => {
+            const mappedComments = body.comments?.map((c: any) => ({
+              path: c.path,
+              body: c.body,
+              line: c.line,
+              side: c.side,
+              ...(c.startLine != null ? { start_line: c.startLine } : {}),
+              ...(c.startSide != null ? { start_side: c.startSide } : {}),
+            }));
+            console.log("[ws] submitReview mappedComments:", JSON.stringify(mappedComments));
+            return githubManager.submitReview(body.owner, body.repo, body.prNumber, body.body, body.event as "APPROVE" | "COMMENT" | "REQUEST_CHANGES", mappedComments);
+          },
+          catch: (cause) => {
+            console.error("[ws] submitReview error:", cause);
+            return new RouteRequestError({ message: `Failed to submit review: ${String(cause)}` });
+          },
         });
       }
 
@@ -1144,10 +1159,19 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
       });
     }
 
+    // Extract the request ID from raw JSON before schema validation so we can
+    // always respond with the correct ID, even if decode fails.
+    let rawRequestId = "unknown";
+    try {
+      const parsed = JSON.parse(messageText);
+      if (typeof parsed?.id === "string") rawRequestId = parsed.id;
+    } catch { /* use "unknown" */ }
+
     const request = decodeWebSocketRequest(messageText);
     if (Result.isFailure(request)) {
+      console.error("[ws] schema decode failed:", formatSchemaError(request.failure));
       return yield* sendWsResponse({
-        id: "unknown",
+        id: rawRequestId,
         error: { message: `Invalid request format: ${formatSchemaError(request.failure)}` },
       });
     }

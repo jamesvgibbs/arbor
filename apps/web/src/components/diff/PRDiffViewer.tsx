@@ -9,12 +9,28 @@ import {
   diffChangedFilesQueryOptions,
   diffLocalDiffQueryOptions,
 } from "../../lib/diffPrReactQuery";
+import type { PendingComment, CommentDraft } from "../../hooks/useInlineComments";
 
 interface PRDiffViewerProps {
   session: WorktreeSessionWithSize;
+  pendingComments?: PendingComment[] | undefined;
+  activeDraft?: CommentDraft | null | undefined;
+  onStartComment?: ((draft: CommentDraft) => void) | undefined;
+  onSubmitComment?: ((body: string) => void) | undefined;
+  onCancelComment?: (() => void) | undefined;
+  onRemoveComment?: ((id: string) => void) | undefined;
+  onAskClaude?: ((prompt: string) => void) | undefined;
 }
 
-export function PRDiffViewer({ session }: PRDiffViewerProps) {
+export function PRDiffViewer({
+  session,
+  pendingComments = [],
+  activeDraft = null,
+  onStartComment,
+  onSubmitComment,
+  onCancelComment,
+  onRemoveComment,
+}: PRDiffViewerProps) {
   const [owner = "", repo = ""] = session.repoSlug.split("/");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
@@ -49,6 +65,8 @@ export function PRDiffViewer({ session }: PRDiffViewerProps) {
     ),
   );
 
+  // Filter comments for the currently selected file
+  const fileComments = pendingComments.filter((c) => c.path === selectedFile);
 
   if (changedFilesQuery.isLoading) {
     return (
@@ -105,6 +123,12 @@ export function PRDiffViewer({ session }: PRDiffViewerProps) {
               ? "Failed to load diff."
               : null
         }
+        pendingComments={fileComments}
+        activeDraft={activeDraft}
+        onStartComment={onStartComment}
+        onSubmitComment={onSubmitComment}
+        onCancelComment={onCancelComment}
+        onRemoveComment={onRemoveComment}
       />
     </div>
   );

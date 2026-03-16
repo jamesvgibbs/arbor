@@ -171,9 +171,17 @@ export class GitHubManager {
     prNumber: number,
     body: string,
     event: "APPROVE" | "COMMENT" | "REQUEST_CHANGES",
+    comments?: Array<{
+      path: string;
+      body: string;
+      line: number;
+      side: "LEFT" | "RIGHT";
+      start_line?: number;
+      start_side?: "LEFT" | "RIGHT";
+    }>,
   ): Promise<{ ok: true }> {
     const service = await this.getGitHubService();
-    await service.submitReview(owner, repo, prNumber, body, event);
+    await service.submitReview(owner, repo, prNumber, body, event, comments);
     return { ok: true };
   }
 

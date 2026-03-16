@@ -57,6 +57,7 @@ import type {
   GitHubPRListResult,
   GitHubPRDetailsInput,
   GitHubRefreshInput,
+  GitHubSubmitReviewInput,
 } from "./github";
 import type {
   WorktreeCreateInput,
@@ -225,6 +226,7 @@ export interface NativeApi {
     listPRs: (input: GitHubPRListInput) => Promise<GitHubPRListResult>;
     getPRDetails: (input: GitHubPRDetailsInput) => Promise<any>;
     refreshPRs: (input: GitHubRefreshInput) => Promise<GitHubPRListResult>;
+    submitReview: (input: GitHubSubmitReviewInput) => Promise<{ ok: true }>;
   };
   worktree: {
     create: (input: WorktreeCreateInput) => Promise<WorktreeCreateResult>;

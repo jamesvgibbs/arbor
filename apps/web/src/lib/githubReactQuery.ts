@@ -139,9 +139,18 @@ export function githubSubmitReviewMutationOptions() {
       prNumber: number;
       body: string;
       event: "APPROVE" | "COMMENT" | "REQUEST_CHANGES";
+      comments?: Array<{
+        path: string;
+        body: string;
+        line: number;
+        side: "LEFT" | "RIGHT";
+        startLine?: number;
+        startSide?: "LEFT" | "RIGHT";
+      }>;
     }) => {
       const api = ensureNativeApi();
-      return api.github.submitReview(params);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return api.github.submitReview(params as any);
     },
   });
 }

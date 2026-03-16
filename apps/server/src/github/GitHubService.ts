@@ -165,7 +165,7 @@ export class GitHubService {
   }
 
   /**
-   * Submit a review on a pull request.
+   * Submit a review on a pull request, optionally with inline comments.
    */
   async submitReview(
     owner: string,
@@ -173,10 +173,22 @@ export class GitHubService {
     prNumber: number,
     body: string,
     event: "APPROVE" | "COMMENT" | "REQUEST_CHANGES",
+    comments?: Array<{
+      path: string;
+      body: string;
+      line: number;
+      side: "LEFT" | "RIGHT";
+      start_line?: number;
+      start_side?: "LEFT" | "RIGHT";
+    }>,
   ): Promise<void> {
+    const payload: Record<string, unknown> = { body, event };
+    if (comments && comments.length > 0) {
+      payload.comments = comments;
+    }
     await this.post(
       `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
-      { body, event },
+      payload,
     );
   }
 
