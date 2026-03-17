@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStore } from "../store";
+import { useComposerDraftStore } from "../composerDraftStore";
 import { githubReposQueryOptions } from "../lib/githubReactQuery";
 import { worktreeListQueryOptions } from "../lib/worktreeReactQuery";
 import { isThoughtBranch } from "../components/ChatView.logic";
 import { readNativeApi } from "../nativeApi";
 import { newCommandId } from "../lib/utils";
 import type { Project, Thread } from "../types";
+import { DEFAULT_RUNTIME_MODE, DEFAULT_INTERACTION_MODE } from "../types";
 
 export type SidebarItemKind = "thought" | "pr-review";
 
@@ -65,6 +67,12 @@ export function useRepoSidebarModel() {
   const projects = useStore((store) => store.projects);
   const threads = useStore((store) => store.threads);
   const collapsedRepoSlugs = useStore((store) => store.collapsedRepoSlugs);
+  const draftThreadsByThreadId = useComposerDraftStore(
+    (store) => store.draftThreadsByThreadId,
+  );
+  const projectDraftThreadIdByProjectId = useComposerDraftStore(
+    (store) => store.projectDraftThreadIdByProjectId,
+  );
   const githubReposQuery = useQuery(githubReposQueryOptions());
   const worktreeListQuery = useQuery(worktreeListQueryOptions());
 
@@ -83,13 +91,44 @@ export function useRepoSidebarModel() {
     const pendingSlugUpdates: Array<{ projectId: string; repoSlug: string }> = [];
 
     for (const project of projects) {
-      const projectThreads = threads
+      let projectThreads = threads
         .filter((t) => t.projectId === project.id)
         .toSorted((a, b) => {
           const byDate = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
           if (byDate !== 0) return byDate;
           return b.id.localeCompare(a.id);
         });
+
+      // Include draft threads for projects that have no real threads yet
+      // (e.g. newly created thought exercises before the first message is sent)
+      if (projectThreads.length === 0) {
+        const draftThreadId = projectDraftThreadIdByProjectId[project.id];
+        const draftState = draftThreadId != null
+          ? draftThreadsByThreadId[draftThreadId]
+          : undefined;
+        if (draftThreadId != null && draftState) {
+          const syntheticThread: Thread = {
+            id: draftThreadId,
+            codexThreadId: null,
+            projectId: project.id,
+            title: project.name,
+            model: "",
+            runtimeMode: DEFAULT_RUNTIME_MODE,
+            interactionMode: DEFAULT_INTERACTION_MODE,
+            session: null,
+            messages: [],
+            proposedPlans: [],
+            error: null,
+            createdAt: draftState.createdAt,
+            latestTurn: null,
+            branch: draftState.branch,
+            worktreePath: draftState.worktreePath,
+            turnDiffSummaries: [],
+            activities: [],
+          };
+          projectThreads = [syntheticThread];
+        }
+      }
 
       if (projectThreads.length === 0) continue;
 
@@ -111,13 +150,16 @@ export function useRepoSidebarModel() {
       if (latestThread.latestTurn?.completedAt) candidates.push(latestThread.latestTurn.completedAt);
       const lastActivityAt = candidates.toSorted().at(-1) ?? latestThread.createdAt;
 
-      // Derive status
+      // Derive status — all items should have a status pill
       let status: string | null = null;
       if (kind === "pr-review" && worktreeSession) {
         status = "active";
-      } else if (kind === "thought") {
-        if (latestThread.session?.status === "running") status = "active";
-        else if (latestThread.latestTurn) status = "has-changes";
+      } else if (latestThread.session?.status === "running") {
+        status = "active";
+      } else if (latestThread.latestTurn) {
+        status = "has-changes";
+      } else {
+        status = "draft";
       }
 
       const item: SidebarItem = {
@@ -180,7 +222,7 @@ export function useRepoSidebarModel() {
       hasAnyRepos: trackedRepos.length > 0 || repoGroups.length > 0,
       pendingSlugUpdates,
     };
-  }, [projects, threads, worktreeSessions, trackedRepos, collapsedRepoSlugs]);
+  }, [projects, threads, worktreeSessions, trackedRepos, collapsedRepoSlugs, draftThreadsByThreadId, projectDraftThreadIdByProjectId]);
 
   // Persist derived repoSlugs back to the server (one-time migration per project)
   const migratedRef = useRef(new Set<string>());

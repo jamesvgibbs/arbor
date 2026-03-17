@@ -120,30 +120,32 @@ export function ThoughtBranchPicker({
     }
   }, [open, initialRepoSlug, repos, selectedRepoSlug]);
 
-  // Default to main branch when repo changes
-  useEffect(() => {
-    if (!open || !selectedRepoSlug) return;
-    if (!selectedBranch && branches.length > 0) {
-      const defaultBranch =
-        branches.find((b) => b.isDefault) ??
-        branches.find((b) => b.name === "main") ??
-        branches.find((b) => b.name === "master") ??
-        branches.find((b) => b.current);
-      if (defaultBranch) {
-        setSelectedBranch(defaultBranch.name);
-      }
-    }
-  }, [open, selectedRepoSlug, branches, selectedBranch]);
-
-  // Clear branch when repo changes
+  // Clear branch when repo changes and auto-select default branch when branches load.
+  // Combined into a single effect to avoid a race condition where the "clear" effect
+  // runs after the "auto-select" effect, causing the default branch to never be set.
   const prevRepoSlug = useRef(selectedRepoSlug);
   useEffect(() => {
-    if (prevRepoSlug.current !== selectedRepoSlug) {
+    if (!open || !selectedRepoSlug) return;
+
+    const repoJustChanged = prevRepoSlug.current !== selectedRepoSlug;
+    if (repoJustChanged) {
       prevRepoSlug.current = selectedRepoSlug;
-      setSelectedBranch(null);
       setBranchQuery("");
     }
-  }, [selectedRepoSlug]);
+
+    // When repo changes, pick the default branch (or clear if branches aren't loaded yet).
+    // When branches load later (and no branch is selected), also pick the default.
+    if (repoJustChanged || (!selectedBranch && branches.length > 0)) {
+      const defaultBranch =
+        branches.length > 0
+          ? (branches.find((b) => b.isDefault) ??
+             branches.find((b) => b.name === "main") ??
+             branches.find((b) => b.name === "master") ??
+             branches.find((b) => b.current))
+          : undefined;
+      setSelectedBranch(defaultBranch?.name ?? null);
+    }
+  }, [open, selectedRepoSlug, branches, selectedBranch]);
 
   const handleConfirm = () => {
     if (activeRepo && selectedBranch) {
