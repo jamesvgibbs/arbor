@@ -352,7 +352,8 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
         ? buildLocalDraftThread(
             threadId,
             draftThread,
-            fallbackDraftProject?.model ?? DEFAULT_MODEL_BY_PROVIDER.codex,
+            fallbackDraftProject?.model ??
+              DEFAULT_MODEL_BY_PROVIDER[composerDraft.provider ?? "codex"],
             localDraftError,
           )
         : undefined,
@@ -492,7 +493,8 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
       (providerDetectedModel as ModelSlug | undefined) ??
       getDefaultModel(selectedProvider),
   );
-  const customModelsForSelectedProvider = settings.customCodexModels;
+  const customModelsForSelectedProvider =
+    selectedProvider === "claudeCode" ? settings.customClaudeCodeModels : settings.customCodexModels;
   const selectedModel = useMemo(() => {
     const draftModel = composerDraft.model;
     if (!draftModel) {
@@ -2341,7 +2343,9 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
       }
       const title = truncateTitle(titleSeed);
       let threadCreateModel: ModelSlug =
-        selectedModel || (activeProject.model as ModelSlug) || DEFAULT_MODEL_BY_PROVIDER.codex;
+        selectedModel ||
+        (activeProject.model as ModelSlug) ||
+        DEFAULT_MODEL_BY_PROVIDER[selectedProvider];
 
       if (isLocalDraftThread) {
         await api.orchestration.dispatchCommand({
@@ -2767,7 +2771,7 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
       selectedModel ||
       (activeThread.model as ModelSlug) ||
       (activeProject.model as ModelSlug) ||
-      DEFAULT_MODEL_BY_PROVIDER.codex;
+      DEFAULT_MODEL_BY_PROVIDER[selectedProvider];
 
     sendInFlightRef.current = true;
     beginSendPhase("sending-turn");
@@ -2871,10 +2875,12 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
         scheduleComposerFocus();
         return;
       }
+      const customModels =
+        provider === "claudeCode" ? settings.customClaudeCodeModels : settings.customCodexModels;
       setComposerDraftProvider(activeThread.id, provider);
       setComposerDraftModel(
         activeThread.id,
-        resolveAppModelSelection(provider, settings.customCodexModels, model),
+        resolveAppModelSelection(provider, customModels, model),
       );
       scheduleComposerFocus();
     },
@@ -2885,6 +2891,7 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
       setComposerDraftModel,
       setComposerDraftProvider,
       settings.customCodexModels,
+      settings.customClaudeCodeModels,
     ],
   );
   const onEffortSelect = useCallback(
