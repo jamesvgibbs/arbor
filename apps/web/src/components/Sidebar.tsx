@@ -49,8 +49,12 @@ import { readNativeApi } from "../nativeApi";
 import { useComposerDraftStore } from "../composerDraftStore";
 import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { useStartThoughtExercise } from "../hooks/useStartThoughtExercise";
+import { useRepoSidebarModel } from "../hooks/useRepoSidebarModel";
 import { isThoughtBranch } from "./ChatView.logic";
 import { ThoughtBranchPicker } from "./ThoughtBranchPicker";
+import { RepoGroup } from "./sidebar/RepoGroup";
+import { SidebarItem as RepoSidebarItem } from "./sidebar/SidebarItem";
+import { SidebarNewMenu } from "./sidebar/SidebarNewMenu";
 import { selectThreadTerminalState, useTerminalStateStore } from "../terminalStateStore";
 import { Menu, MenuTrigger, MenuPopup, MenuItem } from "./ui/menu";
 import { toastManager } from "./ui/toast";
@@ -333,7 +337,10 @@ export default function Sidebar() {
   const removeFromSelection = useThreadSelectionStore((s) => s.removeFromSelection);
   const setSelectionAnchor = useThreadSelectionStore((s) => s.setAnchor);
   const { startThoughtExercise } = useStartThoughtExercise();
+  const toggleRepoExpanded = useStore((store) => store.toggleRepoExpanded);
+  const { repoGroups, uncategorizedItems, hasAnyRepos } = useRepoSidebarModel();
   const [thoughtPickerProjectId, setThoughtPickerProjectId] = useState<ProjectId | null>(null);
+  const [thoughtPickerRepoSlug, setThoughtPickerRepoSlug] = useState<string | undefined>(undefined);
   const thoughtPickerProject = thoughtPickerProjectId
     ? projects.find((p) => p.id === thoughtPickerProjectId) ?? null
     : null;
@@ -1217,28 +1224,25 @@ export default function Sidebar() {
         <SidebarGroup className="px-2 py-2">
           <div className="mb-1 flex items-center justify-between px-2">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-              Projects
+              Repositories
             </span>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    aria-label="Add project"
-                    aria-pressed={shouldShowProjectPathEntry}
-                    className="inline-flex size-5 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
-                    onClick={handleStartAddProject}
-                  />
+            <SidebarNewMenu
+              onNewThought={() => {
+                // If we have tracked repos, open the first project's thought picker
+                // Otherwise fall back to existing add-project flow
+                if (projects.length > 0) {
+                  const firstProjectWithRepo = projects.find((p) => p.repoSlug);
+                  const target = firstProjectWithRepo ?? projects[0];
+                  if (target) {
+                    setThoughtPickerProjectId(target.id);
+                    setThoughtPickerRepoSlug(target.repoSlug ?? undefined);
+                  }
+                } else {
+                  handleStartAddProject();
                 }
-              >
-                <PlusIcon
-                  className={`size-3.5 transition-transform duration-150 ${
-                    shouldShowProjectPathEntry ? "rotate-45" : "rotate-0"
-                  }`}
-                />
-              </TooltipTrigger>
-              <TooltipPopup side="right">Add project</TooltipPopup>
-            </Tooltip>
+              }}
+              onReviewPR={() => void navigate({ to: "/github" })}
+            />
           </div>
 
           {shouldShowProjectPathEntry && (
@@ -1306,6 +1310,70 @@ export default function Sidebar() {
             </div>
           )}
 
+          {/* ── Repo-grouped sidebar ────────────────────────── */}
+          {repoGroups.map((group) => (
+            <RepoGroup
+              key={group.repoSlug}
+              group={group}
+              activeThreadId={routeThreadId}
+              onToggleExpand={toggleRepoExpanded}
+              onItemClick={(event, threadId) => {
+                if (selectedThreadIds.size > 0) {
+                  clearSelection();
+                }
+                void navigate({
+                  to: "/$threadId",
+                  params: { threadId },
+                });
+              }}
+              onItemContextMenu={(event, threadId) => {
+                event.preventDefault();
+                void handleThreadContextMenu(threadId, {
+                  x: event.clientX,
+                  y: event.clientY,
+                });
+              }}
+            />
+          ))}
+
+          {uncategorizedItems.length > 0 && (
+            <div className="mb-1">
+              {repoGroups.length > 0 && (
+                <div className="px-2 py-1">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/40">
+                    Other
+                  </span>
+                </div>
+              )}
+              <div className="flex flex-col gap-0.5 px-1">
+                {uncategorizedItems.map((item) => (
+                  <RepoSidebarItem
+                    key={item.project.id}
+                    item={item}
+                    isActive={routeThreadId === item.thread.id}
+                    onClick={() => {
+                      if (selectedThreadIds.size > 0) {
+                        clearSelection();
+                      }
+                      void navigate({
+                        to: "/$threadId",
+                        params: { threadId: item.thread.id },
+                      });
+                    }}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      void handleThreadContextMenu(item.thread.id, {
+                        x: event.clientX,
+                        y: event.clientY,
+                      });
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Legacy project list (DnD) ── keep for projects with threads not in repo groups */}
           <DndContext
             sensors={projectDnDSensors}
             collisionDetection={projectCollisionDetection}
@@ -1319,21 +1387,16 @@ export default function Sidebar() {
                 items={projects.map((project) => project.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {projects.map((project) => {
-                  const projectThreads = threads
-                    .filter((thread) => thread.projectId === project.id)
-                    .toSorted((a, b) => {
-                      const byDate =
-                        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-                      if (byDate !== 0) return byDate;
-                      return b.id.localeCompare(a.id);
-                    });
+                {projects.filter((p) => {
+                  // Only show projects that have no threads (empty projects needing add-thread UX)
+                  // Projects with threads are handled by repo groups above
+                  const hasThreads = threads.some((t) => t.projectId === p.id);
+                  return !hasThreads;
+                }).map((project) => {
+                  const projectThreads: typeof threads = [];
                   const isThreadListExpanded = expandedThreadListsByProject.has(project.id);
                   const hasHiddenThreads = projectThreads.length > THREAD_PREVIEW_LIMIT;
-                  const visibleThreads =
-                    hasHiddenThreads && !isThreadListExpanded
-                      ? projectThreads.slice(0, THREAD_PREVIEW_LIMIT)
-                      : projectThreads;
+                  const visibleThreads = projectThreads;
                   const orderedProjectThreadIds = projectThreads.map((t) => t.id);
 
                   return (
@@ -1357,12 +1420,20 @@ export default function Sidebar() {
                                 });
                               }}
                             >
-                              <button
-                                type="button"
+                              <span
+                                role="button"
+                                tabIndex={0}
                                 className="flex shrink-0 items-center"
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   toggleProject(project.id);
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.stopPropagation();
+                                    event.preventDefault();
+                                    toggleProject(project.id);
+                                  }
                                 }}
                               >
                                 <ChevronRightIcon
@@ -1370,7 +1441,7 @@ export default function Sidebar() {
                                     project.expanded ? "rotate-90" : ""
                                   }`}
                                 />
-                              </button>
+                              </span>
                               <ProjectFavicon cwd={project.cwd} />
                               <span className="flex-1 truncate text-xs font-medium text-foreground/90">
                                 {project.name}
@@ -1652,7 +1723,21 @@ export default function Sidebar() {
 
           {projects.length === 0 && !shouldShowProjectPathEntry && (
             <div className="px-2 pt-4 text-center text-xs text-muted-foreground/60">
-              No projects yet
+              {hasAnyRepos ? (
+                "No projects yet"
+              ) : (
+                <span>
+                  Add a repository in{" "}
+                  <button
+                    type="button"
+                    className="underline hover:text-foreground"
+                    onClick={() => void navigate({ to: "/settings" })}
+                  >
+                    Settings
+                  </button>{" "}
+                  to get started
+                </span>
+              )}
             </div>
           )}
         </SidebarGroup>
@@ -1705,13 +1790,18 @@ export default function Sidebar() {
       {thoughtPickerProject && (
         <ThoughtBranchPicker
           projectCwd={thoughtPickerProject.cwd}
+          repoSlug={thoughtPickerRepoSlug ?? thoughtPickerProject.repoSlug ?? undefined}
           open={thoughtPickerProjectId !== null}
           onOpenChange={(open) => {
-            if (!open) setThoughtPickerProjectId(null);
+            if (!open) {
+              setThoughtPickerProjectId(null);
+              setThoughtPickerRepoSlug(undefined);
+            }
           }}
-          onConfirm={(baseBranch) => {
-            void startThoughtExercise(thoughtPickerProject.id, baseBranch);
+          onConfirm={(baseBranch, repoSlug) => {
+            void startThoughtExercise(thoughtPickerProject.id, baseBranch, repoSlug);
             setThoughtPickerProjectId(null);
+            setThoughtPickerRepoSlug(undefined);
           }}
         />
       )}
