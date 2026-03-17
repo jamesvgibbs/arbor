@@ -1,4 +1,5 @@
 import type { Thread } from "../types";
+import type { SidebarItemKind } from "../hooks/useRepoSidebarModel";
 import { cn } from "../lib/utils";
 import { findLatestProposedPlan, isLatestTurnSettled } from "../session-logic";
 
@@ -135,5 +136,24 @@ export function resolveThreadStatusPill(input: {
     };
   }
 
+  return null;
+}
+
+export function resolveSidebarItemStatus(input: {
+  kind: SidebarItemKind;
+  thread: ThreadStatusInput;
+  worktreeSessionActive?: boolean;
+}): string | null {
+  const { kind, thread, worktreeSessionActive } = input;
+
+  if (kind === "pr-review") {
+    if (thread.session?.status === "running") return "active";
+    if (worktreeSessionActive) return "active";
+    return null;
+  }
+
+  // thought exercise
+  if (thread.session?.status === "running") return "active";
+  if (thread.latestTurn?.completedAt) return "has-changes";
   return null;
 }

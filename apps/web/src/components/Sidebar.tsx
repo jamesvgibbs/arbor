@@ -338,7 +338,7 @@ export default function Sidebar() {
   const setSelectionAnchor = useThreadSelectionStore((s) => s.setAnchor);
   const { startThoughtExercise } = useStartThoughtExercise();
   const toggleRepoExpanded = useStore((store) => store.toggleRepoExpanded);
-  const { repoGroups, uncategorizedItems, hasAnyRepos } = useRepoSidebarModel();
+  const { repoGroups, uncategorizedItems, hasAnyRepos, trackedRepos } = useRepoSidebarModel();
   const [thoughtPickerProjectId, setThoughtPickerProjectId] = useState<ProjectId | null>(null);
   const [thoughtPickerRepoSlug, setThoughtPickerRepoSlug] = useState<string | undefined>(undefined);
   const thoughtPickerProject = thoughtPickerProjectId
@@ -1228,17 +1228,11 @@ export default function Sidebar() {
             </span>
             <SidebarNewMenu
               onNewThought={() => {
-                // If we have tracked repos, open the first project's thought picker
-                // Otherwise fall back to existing add-project flow
-                if (projects.length > 0) {
-                  const firstProjectWithRepo = projects.find((p) => p.repoSlug);
-                  const target = firstProjectWithRepo ?? projects[0];
-                  if (target) {
-                    setThoughtPickerProjectId(target.id);
-                    setThoughtPickerRepoSlug(target.repoSlug ?? undefined);
-                  }
-                } else {
-                  handleStartAddProject();
+                // Open the thought picker dialog — it has its own repo picker
+                const firstRepo = repoGroups[0]?.items[0]?.project;
+                if (firstRepo) {
+                  setThoughtPickerProjectId(firstRepo.id);
+                  setThoughtPickerRepoSlug(undefined);
                 }
               }}
               onReviewPR={() => void navigate({ to: "/github" })}
@@ -1787,24 +1781,52 @@ export default function Sidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      {thoughtPickerProject && (
-        <ThoughtBranchPicker
-          projectCwd={thoughtPickerProject.cwd}
-          repoSlug={thoughtPickerRepoSlug ?? thoughtPickerProject.repoSlug ?? undefined}
-          open={thoughtPickerProjectId !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setThoughtPickerProjectId(null);
-              setThoughtPickerRepoSlug(undefined);
+      <ThoughtBranchPicker
+        repos={(() => {
+          // Build from all tracked repos, enriching with project data where available
+          const repoGroupBySlug = new Map(repoGroups.map((g) => [g.repoSlug, g]));
+          const seen = new Set<string>();
+          const result: import("./ThoughtBranchPicker").ThoughtRepoOption[] = [];
+          // Add repos that have existing projects first
+          for (const g of repoGroups) {
+            const firstProject = g.items[0]?.project;
+            if (firstProject) {
+              result.push({
+                slug: g.repoSlug,
+                projectId: firstProject.id,
+                projectCwd: firstProject.cwd,
+              });
+              seen.add(g.repoSlug);
             }
-          }}
-          onConfirm={(baseBranch, repoSlug) => {
-            void startThoughtExercise(thoughtPickerProject.id, baseBranch, repoSlug);
+          }
+          // Add tracked repos that don't have projects yet
+          for (const repo of trackedRepos) {
+            const slug = `${repo.owner}/${repo.repo}`;
+            if (!seen.has(slug)) {
+              result.push({ slug, projectId: "", projectCwd: "" });
+            }
+          }
+          return result;
+        })()}
+        initialRepoSlug={thoughtPickerRepoSlug}
+        open={thoughtPickerProjectId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
             setThoughtPickerProjectId(null);
             setThoughtPickerRepoSlug(undefined);
-          }}
-        />
-      )}
+          }
+        }}
+        onConfirm={(repo, baseBranch) => {
+          const target = projects.find(
+            (p) => p.id === repo.projectId || p.repoSlug === repo.slug,
+          );
+          if (target) {
+            void startThoughtExercise(target.id, baseBranch, repo.slug);
+          }
+          setThoughtPickerProjectId(null);
+          setThoughtPickerRepoSlug(undefined);
+        }}
+      />
     </>
   );
 }

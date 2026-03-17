@@ -42,11 +42,13 @@ function makeState(thread: Thread): AppState {
         cwd: "/tmp/project",
         model: "gpt-5-codex",
         expanded: true,
+        repoSlug: null,
         scripts: [],
       },
     ],
     threads: [thread],
     threadsHydrated: true,
+    collapsedRepoSlugs: new Set(),
   };
 }
 
@@ -83,6 +85,7 @@ function makeReadModel(thread: OrchestrationReadModel["threads"][number]): Orche
         title: "Project",
         workspaceRoot: "/tmp/project",
         defaultModel: "gpt-5.3-codex",
+        repoSlug: null,
         createdAt: "2026-02-27T00:00:00.000Z",
         updatedAt: "2026-02-27T00:00:00.000Z",
         deletedAt: null,
@@ -101,6 +104,7 @@ function makeReadModelProject(
     title: "Project",
     workspaceRoot: "/tmp/project",
     defaultModel: "gpt-5.3-codex",
+    repoSlug: null,
     createdAt: "2026-02-27T00:00:00.000Z",
     updatedAt: "2026-02-27T00:00:00.000Z",
     deletedAt: null,
@@ -161,6 +165,7 @@ describe("store pure functions", () => {
           cwd: "/tmp/project-1",
           model: DEFAULT_MODEL_BY_PROVIDER.codex,
           expanded: true,
+          repoSlug: null,
           scripts: [],
         },
         {
@@ -169,6 +174,7 @@ describe("store pure functions", () => {
           cwd: "/tmp/project-2",
           model: DEFAULT_MODEL_BY_PROVIDER.codex,
           expanded: true,
+          repoSlug: null,
           scripts: [],
         },
         {
@@ -177,11 +183,13 @@ describe("store pure functions", () => {
           cwd: "/tmp/project-3",
           model: DEFAULT_MODEL_BY_PROVIDER.codex,
           expanded: true,
+          repoSlug: null,
           scripts: [],
         },
       ],
       threads: [],
       threadsHydrated: true,
+      collapsedRepoSlugs: new Set(),
     };
 
     const next = reorderProjects(state, project1, project3);
@@ -216,6 +224,7 @@ describe("store read model sync", () => {
           cwd: "/tmp/project-2",
           model: DEFAULT_MODEL_BY_PROVIDER.codex,
           expanded: true,
+          repoSlug: null,
           scripts: [],
         },
         {
@@ -224,11 +233,13 @@ describe("store read model sync", () => {
           cwd: "/tmp/project-1",
           model: DEFAULT_MODEL_BY_PROVIDER.codex,
           expanded: true,
+          repoSlug: null,
           scripts: [],
         },
       ],
       threads: [],
       threadsHydrated: true,
+      collapsedRepoSlugs: new Set(),
     };
     const readModel: OrchestrationReadModel = {
       snapshotSequence: 2,

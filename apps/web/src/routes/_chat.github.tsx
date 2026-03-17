@@ -456,6 +456,7 @@ function GitHubRouteView() {
           title,
           workspaceRoot: worktreePath,
           defaultModel: DEFAULT_MODEL_BY_PROVIDER.codex,
+          repoSlug: `${activeOwner}/${activeRepo}`,
           createdAt: new Date().toISOString(),
         });
       }
