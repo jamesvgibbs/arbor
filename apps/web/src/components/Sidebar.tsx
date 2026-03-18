@@ -1342,6 +1342,9 @@ export default function Sidebar() {
                   y: event.clientY,
                 });
               }}
+              onNewThread={(projectId) => {
+                void handleNewThread(projectId);
+              }}
             />
           ))}
 
@@ -1356,24 +1359,37 @@ export default function Sidebar() {
               )}
               <div className="flex flex-col gap-0.5 px-1">
                 {uncategorizedItems.map((item) => (
-                  <RepoSidebarItem
-                    key={item.project.id}
-                    item={item}
-                    isActive={routeThreadId === item.thread.id}
-                    onClick={() => {
-                      if (selectedThreadIds.size > 0) {
-                        clearSelection();
-                      }
-                      navigateToThread(item.thread.id);
-                    }}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      void handleThreadContextMenu(item.thread.id, {
-                        x: event.clientX,
-                        y: event.clientY,
-                      });
-                    }}
-                  />
+                  <div key={item.project.id} className="group/uncategorized-item relative">
+                    <RepoSidebarItem
+                      item={item}
+                      isActive={routeThreadId === item.thread.id}
+                      onClick={() => {
+                        if (selectedThreadIds.size > 0) {
+                          clearSelection();
+                        }
+                        navigateToThread(item.thread.id);
+                      }}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        void handleThreadContextMenu(item.thread.id, {
+                          x: event.clientX,
+                          y: event.clientY,
+                        });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      data-testid="new-thread-button"
+                      aria-label={`Create new thread in ${item.project.name}`}
+                      className="absolute right-1 top-1 inline-flex size-5 items-center justify-center rounded-md text-muted-foreground/70 opacity-0 hover:bg-secondary hover:text-foreground group-hover/uncategorized-item:opacity-100"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleNewThread(item.project.id);
+                      }}
+                    >
+                      <SquarePenIcon className="size-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
