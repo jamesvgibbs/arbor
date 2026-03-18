@@ -37,7 +37,7 @@ interface MessagesTimelineProps {
   nowIso: string;
   expandedWorkGroups: Record<string, boolean>;
   onToggleWorkGroup: (groupId: string) => void;
-  onOpenTurnDiff: (turnId: TurnId, filePath?: string) => void;
+  onOpenTurnDiff?: ((turnId: TurnId, filePath?: string) => void) | undefined;
   revertTurnCountByUserMessageId: Map<MessageId, number>;
   onRevertUserMessage: (messageId: MessageId) => void;
   isRevertingCheckpoint: boolean;
@@ -486,16 +486,18 @@ export const MessagesTimeline = memo(function MessagesTimeline({
                           >
                             {allDirectoriesExpanded ? "Collapse all" : "Expand all"}
                           </Button>
-                          <Button
-                            type="button"
-                            size="xs"
-                            variant="outline"
-                            onClick={() =>
-                              onOpenTurnDiff(turnSummary.turnId, checkpointFiles[0]?.path)
-                            }
-                          >
-                            View diff
-                          </Button>
+                          {onOpenTurnDiff && (
+                            <Button
+                              type="button"
+                              size="xs"
+                              variant="outline"
+                              onClick={() =>
+                                onOpenTurnDiff(turnSummary.turnId, checkpointFiles[0]?.path)
+                              }
+                            >
+                              View diff
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <ChangedFilesTree

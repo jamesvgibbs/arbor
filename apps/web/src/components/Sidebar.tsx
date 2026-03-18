@@ -420,6 +420,27 @@ export default function Sidebar() {
     });
   }, []);
 
+  const navigateToThread = useCallback(
+    (threadId: ThreadId, options?: { replace?: boolean }) => {
+      const thread = threads.find((t) => t.id === threadId);
+      const replace = options?.replace === true ? true : undefined;
+      if (thread?.worktreePath && sessionByWorktreePath.has(thread.worktreePath)) {
+        void navigate({
+          to: "/review/$projectId",
+          params: { projectId: thread.projectId },
+          ...(replace ? { replace } : {}),
+        });
+      } else {
+        void navigate({
+          to: "/$threadId",
+          params: { threadId },
+          ...(replace ? { replace } : {}),
+        });
+      }
+    },
+    [navigate, threads, sessionByWorktreePath],
+  );
+
   const focusMostRecentThreadForProject = useCallback(
     (projectId: ProjectId) => {
       const latestThread = threads
@@ -431,12 +452,9 @@ export default function Sidebar() {
         })[0];
       if (!latestThread) return;
 
-      void navigate({
-        to: "/$threadId",
-        params: { threadId: latestThread.id },
-      });
+      navigateToThread(latestThread.id);
     },
-    [navigate, threads],
+    [navigateToThread, threads],
   );
 
   const addProjectFromPath = useCallback(
@@ -654,11 +672,7 @@ export default function Sidebar() {
       clearTerminalState(threadId);
       if (shouldNavigateToFallback) {
         if (fallbackThreadId) {
-          void navigate({
-            to: "/$threadId",
-            params: { threadId: fallbackThreadId },
-            replace: true,
-          });
+          navigateToThread(fallbackThreadId, { replace: true });
         } else {
           void navigate({ to: "/", replace: true });
         }
@@ -837,14 +851,11 @@ export default function Sidebar() {
         clearSelection();
       }
       setSelectionAnchor(threadId);
-      void navigate({
-        to: "/$threadId",
-        params: { threadId },
-      });
+      navigateToThread(threadId);
     },
     [
       clearSelection,
-      navigate,
+      navigateToThread,
       rangeSelectTo,
       selectedThreadIds.size,
       setSelectionAnchor,
@@ -1315,10 +1326,7 @@ export default function Sidebar() {
                 if (selectedThreadIds.size > 0) {
                   clearSelection();
                 }
-                void navigate({
-                  to: "/$threadId",
-                  params: { threadId },
-                });
+                navigateToThread(threadId);
               }}
               onItemContextMenu={(event, threadId) => {
                 event.preventDefault();
@@ -1349,10 +1357,7 @@ export default function Sidebar() {
                       if (selectedThreadIds.size > 0) {
                         clearSelection();
                       }
-                      void navigate({
-                        to: "/$threadId",
-                        params: { threadId: item.thread.id },
-                      });
+                      navigateToThread(item.thread.id);
                     }}
                     onContextMenu={(event) => {
                       event.preventDefault();
@@ -1536,10 +1541,7 @@ export default function Sidebar() {
                                           clearSelection();
                                         }
                                         setSelectionAnchor(thread.id);
-                                        void navigate({
-                                          to: "/$threadId",
-                                          params: { threadId: thread.id },
-                                        });
+                                        navigateToThread(thread.id);
                                       }}
                                       onContextMenu={(event) => {
                                         event.preventDefault();

@@ -16,7 +16,6 @@ import {
   type ServerProviderStatus,
   type ProviderKind,
   type ThreadId,
-  type TurnId,
   OrchestrationThreadActivity,
   RuntimeMode,
   ProviderInteractionMode,
@@ -31,12 +30,11 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebouncedValue } from "@tanstack/react-pacer";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { gitBranchesQueryOptions, gitCreateWorktreeMutationOptions } from "~/lib/gitReactQuery";
 import { projectSearchEntriesQueryOptions } from "~/lib/projectReactQuery";
 import { serverConfigQueryOptions, serverQueryKeys } from "~/lib/serverReactQuery";
 import { isElectron } from "../env";
-import { parseDiffRouteSearch, stripDiffSearchParams } from "../diffRouteSearch";
 import {
   type ComposerTrigger,
   detectComposerTrigger,
@@ -187,10 +185,6 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
   const setStoreThreadBranch = useStore((store) => store.setThreadBranch);
   const { settings } = useAppSettings();
   const navigate = useNavigate();
-  const rawSearch = useSearch({
-    strict: false,
-    select: (params) => parseDiffRouteSearch(params),
-  });
   const { resolvedTheme } = useTheme();
   const queryClient = useQueryClient();
   const serverConfigQuery = useQuery(serverConfigQueryOptions());
@@ -367,7 +361,6 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
   const isServerThread = serverThread !== undefined;
   const isLocalDraftThread = !isServerThread && localDraftThread !== undefined;
   const canCheckoutPullRequestIntoThread = isLocalDraftThread;
-  const diffOpen = rawSearch.diff === "1";
   const activeThreadId = activeThread?.id ?? null;
   const activeLatestTurn = activeThread?.latestTurn ?? null;
   const latestTurnSettled = isLatestTurnSettled(activeLatestTurn, activeThread?.session ?? null);
@@ -1041,21 +1034,6 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
     () => shortcutLabelForCommand(keybindings, "terminal.close"),
     [keybindings],
   );
-  const diffPanelShortcutLabel = useMemo(
-    () => shortcutLabelForCommand(keybindings, "diff.toggle"),
-    [keybindings],
-  );
-  const onToggleDiff = useCallback(() => {
-    void navigate({
-      to: "/$threadId",
-      params: { threadId },
-      replace: true,
-      search: (previous) => {
-        const rest = stripDiffSearchParams(previous);
-        return diffOpen ? { ...rest, diff: undefined } : { ...rest, diff: "1" };
-      },
-    });
-  }, [diffOpen, navigate, threadId]);
 
   const envLocked = Boolean(
     activeThread &&
@@ -2018,13 +1996,6 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
         return;
       }
 
-      if (command === "diff.toggle") {
-        event.preventDefault();
-        event.stopPropagation();
-        onToggleDiff();
-        return;
-      }
-
       const scriptId = projectScriptIdFromCommand(command);
       if (!scriptId || !activeProject) return;
       const script = activeProject.scripts.find((entry) => entry.id === scriptId);
@@ -2046,7 +2017,6 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
     runProjectScript,
     splitTerminal,
     keybindings,
-    onToggleDiff,
     toggleTerminalVisibility,
   ]);
 
@@ -3145,21 +3115,6 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
     setExpandedImage(preview);
   }, []);
   const expandedImageItem = expandedImage ? expandedImage.images[expandedImage.index] : null;
-  const onOpenTurnDiff = useCallback(
-    (turnId: TurnId, filePath?: string) => {
-      void navigate({
-        to: "/$threadId",
-        params: { threadId },
-        search: (previous) => {
-          const rest = stripDiffSearchParams(previous);
-          return filePath
-            ? { ...rest, diff: "1", diffTurnId: turnId, diffFilePath: filePath }
-            : { ...rest, diff: "1", diffTurnId: turnId };
-        },
-      });
-    },
-    [navigate, threadId],
-  );
   const onRevertUserMessage = (messageId: MessageId) => {
     const targetTurnCount = revertTurnCountByUserMessageId.get(messageId);
     if (typeof targetTurnCount !== "number") {
@@ -3250,7 +3205,6 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
               nowIso={nowIso}
               expandedWorkGroups={expandedWorkGroups}
               onToggleWorkGroup={onToggleWorkGroup}
-              onOpenTurnDiff={onOpenTurnDiff}
               revertTurnCountByUserMessageId={revertTurnCountByUserMessageId}
               onRevertUserMessage={onRevertUserMessage}
               isRevertingCheckpoint={isRevertingCheckpoint}
