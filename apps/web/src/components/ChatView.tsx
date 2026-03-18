@@ -487,7 +487,9 @@ export default function ChatView({ threadId, reviewMode }: ChatViewProps) {
       getDefaultModel(selectedProvider),
   );
   const customModelsForSelectedProvider =
-    selectedProvider === "claudeCode" ? settings.customClaudeCodeModels : settings.customCodexModels;
+    selectedProvider === "claudeCode"
+      ? settings.customClaudeCodeModels
+      : settings.customCodexModels;
   const selectedModel = useMemo(() => {
     const draftModel = composerDraft.model;
     if (!draftModel) {

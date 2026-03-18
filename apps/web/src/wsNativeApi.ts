@@ -208,7 +208,8 @@ export function createWsNativeApi(): NativeApi {
       openInIDE: (input) => transport.request(WORKTREE_WS_METHODS.openInIDE, input),
       healthCheck: () => transport.request(WORKTREE_WS_METHODS.healthCheck),
       getArborSettings: () => transport.request(WORKTREE_WS_METHODS.getArborSettings),
-      updateArborSettings: (input) => transport.request(WORKTREE_WS_METHODS.updateArborSettings, input),
+      updateArborSettings: (input) =>
+        transport.request(WORKTREE_WS_METHODS.updateArborSettings, input),
     },
     reviewContext: {
       detect: (input) => transport.request(REVIEW_CONTEXT_WS_METHODS.detect, input),

@@ -78,8 +78,6 @@ export function confirmDialog(message: string): Promise<boolean> {
       }, 300);
     };
 
-    root.render(
-      <ConfirmDialog title={title} description={description} onResolve={onResolve} />,
-    );
+    root.render(<ConfirmDialog title={title} description={description} onResolve={onResolve} />);
   });
 }
