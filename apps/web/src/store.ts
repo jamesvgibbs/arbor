@@ -22,10 +22,12 @@ export interface AppState {
   projects: Project[];
   threads: Thread[];
   threadsHydrated: boolean;
+  collapsedRepoSlugs: Set<string>;
 }
 
-const PERSISTED_STATE_KEY = "arbor:renderer-state:v8";
+const PERSISTED_STATE_KEY = "arbor:renderer-state:v9";
 const LEGACY_PERSISTED_STATE_KEYS = [
+  "arbor:renderer-state:v8",
   "arbor:renderer-state:v7",
   "arbor:renderer-state:v6",
   "arbor:renderer-state:v5",
@@ -41,6 +43,7 @@ const initialState: AppState = {
   projects: [],
   threads: [],
   threadsHydrated: false,
+  collapsedRepoSlugs: new Set<string>(),
 };
 const persistedExpandedProjectCwds = new Set<string>();
 const persistedProjectOrderCwds: string[] = [];
@@ -55,6 +58,7 @@ function readPersistedState(): AppState {
     const parsed = JSON.parse(raw) as {
       expandedProjectCwds?: string[];
       projectOrderCwds?: string[];
+      collapsedRepoSlugs?: string[];
     };
     persistedExpandedProjectCwds.clear();
     persistedProjectOrderCwds.length = 0;
@@ -68,7 +72,13 @@ function readPersistedState(): AppState {
         persistedProjectOrderCwds.push(cwd);
       }
     }
-    return { ...initialState };
+    const collapsedRepoSlugs = new Set<string>();
+    for (const slug of parsed.collapsedRepoSlugs ?? []) {
+      if (typeof slug === "string" && slug.length > 0) {
+        collapsedRepoSlugs.add(slug);
+      }
+    }
+    return { ...initialState, collapsedRepoSlugs };
   } catch {
     return initialState;
   }
@@ -86,6 +96,7 @@ function persistState(state: AppState): void {
           .filter((project) => project.expanded)
           .map((project) => project.cwd),
         projectOrderCwds: state.projects.map((project) => project.cwd),
+        collapsedRepoSlugs: [...state.collapsedRepoSlugs],
       }),
     );
     if (!legacyKeysCleanedUp) {
@@ -146,6 +157,7 @@ function mapProjectsFromReadModel(
         (persistedExpandedProjectCwds.size > 0
           ? persistedExpandedProjectCwds.has(project.workspaceRoot)
           : true),
+      repoSlug: project.repoSlug ?? null,
       scripts: project.scripts.map((script) => ({ ...script })),
     } satisfies Project;
   });
@@ -189,24 +201,31 @@ function toLegacySessionStatus(
 }
 
 function toLegacyProvider(providerName: string | null): ProviderKind {
-  if (providerName === "codex") {
+  if (providerName === "codex" || providerName === "claudeCode") {
     return providerName;
   }
   return "codex";
 }
 
 const CODEX_MODEL_SLUGS = new Set<string>(getModelOptions("codex").map((option) => option.slug));
+const CLAUDE_CODE_MODEL_SLUGS = new Set<string>(
+  getModelOptions("claudeCode").map((option) => option.slug),
+);
 
 function inferProviderForThreadModel(input: {
   readonly model: string;
   readonly sessionProviderName: string | null;
 }): ProviderKind {
-  if (input.sessionProviderName === "codex") {
+  if (input.sessionProviderName === "codex" || input.sessionProviderName === "claudeCode") {
     return input.sessionProviderName;
   }
   const normalizedCodex = normalizeModelSlug(input.model, "codex");
   if (normalizedCodex && CODEX_MODEL_SLUGS.has(normalizedCodex)) {
     return "codex";
+  }
+  const normalizedClaudeCode = normalizeModelSlug(input.model, "claudeCode");
+  if (normalizedClaudeCode && CLAUDE_CODE_MODEL_SLUGS.has(normalizedClaudeCode)) {
+    return "claudeCode";
   }
   return "codex";
 }
@@ -441,6 +460,7 @@ interface AppStore extends AppState {
   reorderProjects: (draggedProjectId: Project["id"], targetProjectId: Project["id"]) => void;
   setError: (threadId: ThreadId, error: string | null) => void;
   setThreadBranch: (threadId: ThreadId, branch: string | null, worktreePath: string | null) => void;
+  toggleRepoExpanded: (slug: string) => void;
 }
 
 export const useStore = create<AppStore>((set) => ({
@@ -457,6 +477,16 @@ export const useStore = create<AppStore>((set) => ({
   setError: (threadId, error) => set((state) => setError(state, threadId, error)),
   setThreadBranch: (threadId, branch, worktreePath) =>
     set((state) => setThreadBranch(state, threadId, branch, worktreePath)),
+  toggleRepoExpanded: (slug) =>
+    set((state) => {
+      const next = new Set(state.collapsedRepoSlugs);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return { ...state, collapsedRepoSlugs: next };
+    }),
 }));
 
 // Persist state changes with debouncing to avoid localStorage thrashing

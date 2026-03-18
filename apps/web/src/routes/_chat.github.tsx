@@ -36,9 +36,7 @@ import {
   ideUpdateSettingsMutationOptions,
   ideOpenInIDEMutationOptions,
 } from "~/lib/worktreeReactQuery";
-import {
-  reviewContextInitMutationOptions,
-} from "~/lib/reviewContextReactQuery";
+import { reviewContextInitMutationOptions } from "~/lib/reviewContextReactQuery";
 import { useHandleNewThread } from "~/hooks/useHandleNewThread";
 import { useAppSettings } from "~/appSettings";
 import { ensureNativeApi } from "../nativeApi";
@@ -131,12 +129,8 @@ function IDESelectionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg">
-        <h2 className="text-lg font-semibold text-foreground">
-          Choose your preferred IDE
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Select the IDE for opening worktrees.
-        </p>
+        <h2 className="text-lg font-semibold text-foreground">Choose your preferred IDE</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Select the IDE for opening worktrees.</p>
 
         <div className="mt-4 space-y-2">
           {detectedIDEs.map((ide) => (
@@ -147,9 +141,7 @@ function IDESelectionModal({
               onClick={() => onSelect(ide)}
             >
               <MonitorIcon className="size-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">
-                {IDE_LABELS[ide]}
-              </span>
+              <span className="text-sm font-medium text-foreground">{IDE_LABELS[ide]}</span>
             </button>
           ))}
         </div>
@@ -190,9 +182,7 @@ function GitHubRouteView() {
   const preferredIDE = ideQuery.data?.preferredIDE ?? null;
   const detectedIDEs = ideQuery.data?.detectedIDEs;
   const detectedIDEList: IDEKind[] = detectedIDEs
-    ? (Object.entries(detectedIDEs) as [IDEKind, boolean][])
-        .filter(([, v]) => v)
-        .map(([k]) => k)
+    ? (Object.entries(detectedIDEs) as [IDEKind, boolean][]).filter(([, v]) => v).map(([k]) => k)
     : [];
 
   // First-launch IDE selection
@@ -212,65 +202,66 @@ function GitHubRouteView() {
     }
   }, [ideQuery.isSuccess, preferredIDE, detectedIDEList.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleIDESelect = useCallback((ide: IDEKind) => {
-    ideUpdateMutation.mutate({ preferredIDE: ide });
-    setShowIDEModal(false);
-    toastManager.add({
-      title: `${IDE_LABELS[ide]} set as your default IDE`,
-    });
-  }, [ideUpdateMutation]);
+  const handleIDESelect = useCallback(
+    (ide: IDEKind) => {
+      ideUpdateMutation.mutate({ preferredIDE: ide });
+      setShowIDEModal(false);
+      toastManager.add({
+        title: `${IDE_LABELS[ide]} set as your default IDE`,
+      });
+    },
+    [ideUpdateMutation],
+  );
 
-  const worktreeCreateMutation = useMutation(
-    worktreeCreateMutationOptions({ queryClient }),
-  );
-  const reviewContextInitMutation = useMutation(
-    reviewContextInitMutationOptions(),
-  );
-  const lifecycleMutation = useMutation(
-    worktreeCheckLifecycleMutationOptions({ queryClient }),
-  );
-  const removeMutation = useMutation(
-    worktreeRemoveMutationOptions({ queryClient }),
-  );
+  const worktreeCreateMutation = useMutation(worktreeCreateMutationOptions({ queryClient }));
+  const reviewContextInitMutation = useMutation(reviewContextInitMutationOptions());
+  const lifecycleMutation = useMutation(worktreeCheckLifecycleMutationOptions({ queryClient }));
+  const removeMutation = useMutation(worktreeRemoveMutationOptions({ queryClient }));
   const { handleNewThread, projects } = useHandleNewThread();
 
-  const handleOpenInIDE = useCallback((worktreePath: string, ide: IDEKind) => {
-    openInIDEMutation.mutate({ worktreePath, ide });
-  }, [openInIDEMutation]);
+  const handleOpenInIDE = useCallback(
+    (worktreePath: string, ide: IDEKind) => {
+      openInIDEMutation.mutate({ worktreePath, ide });
+    },
+    [openInIDEMutation],
+  );
 
-  const handleSessionContextMenu = useCallback(async (
-    e: React.MouseEvent,
-    session: WorktreeSessionWithSize,
-  ) => {
-    e.preventDefault();
-    const api = ensureNativeApi();
+  const handleSessionContextMenu = useCallback(
+    async (e: React.MouseEvent, session: WorktreeSessionWithSize) => {
+      e.preventDefault();
+      const api = ensureNativeApi();
 
-    type MenuAction = `open-${IDEKind}` | "copy-path" | "remove";
-    const items: Array<{ id: MenuAction; label: string; destructive?: boolean }> = [];
+      type MenuAction = `open-${IDEKind}` | "copy-path" | "remove";
+      const items: Array<{ id: MenuAction; label: string; destructive?: boolean }> = [];
 
-    for (const ide of detectedIDEList) {
-      items.push({ id: `open-${ide}` as MenuAction, label: `Open in ${IDE_LABELS[ide]}` });
-    }
-    items.push({ id: "copy-path", label: "Copy Worktree Path" });
-    items.push({ id: "remove", label: "Remove Worktree", destructive: true });
+      for (const ide of detectedIDEList) {
+        items.push({ id: `open-${ide}` as MenuAction, label: `Open in ${IDE_LABELS[ide]}` });
+      }
+      items.push({ id: "copy-path", label: "Copy Worktree Path" });
+      items.push({ id: "remove", label: "Remove Worktree", destructive: true });
 
-    const result = await api.contextMenu.show(items, { x: e.clientX, y: e.clientY });
-    if (!result) return;
+      const result = await api.contextMenu.show(items, { x: e.clientX, y: e.clientY });
+      if (!result) return;
 
-    if (result === "copy-path") {
-      await navigator.clipboard.writeText(session.worktreePath);
-      toastManager.add({ title: "Worktree path copied" });
-    } else if (result === "remove") {
-      removeMutation.mutate({ sessionId: session.id }, {
-        onSuccess: () => {
-          toastManager.add({ title: `Worktree removed for PR #${session.prNumber}` });
-        },
-      });
-    } else if (result.startsWith("open-")) {
-      const ide = result.replace("open-", "") as IDEKind;
-      handleOpenInIDE(session.worktreePath, ide);
-    }
-  }, [detectedIDEList, removeMutation, handleOpenInIDE]);
+      if (result === "copy-path") {
+        await navigator.clipboard.writeText(session.worktreePath);
+        toastManager.add({ title: "Worktree path copied" });
+      } else if (result === "remove") {
+        removeMutation.mutate(
+          { sessionId: session.id },
+          {
+            onSuccess: () => {
+              toastManager.add({ title: `Worktree removed for PR #${session.prNumber}` });
+            },
+          },
+        );
+      } else if (result.startsWith("open-")) {
+        const ide = result.replace("open-", "") as IDEKind;
+        handleOpenInIDE(session.worktreePath, ide);
+      }
+    },
+    [detectedIDEList, removeMutation, handleOpenInIDE],
+  );
 
   const repos = reposQuery.data ?? [];
   const activeKey = selectedRepoKey || (repos[0] ? repoKey(repos[0]) : "");
@@ -286,9 +277,7 @@ function GitHubRouteView() {
 
   const sessionsQuery = useQuery(worktreeListQueryOptions());
 
-  const refreshMutation = useMutation(
-    githubRefreshPRsMutationOptions({ queryClient }),
-  );
+  const refreshMutation = useMutation(githubRefreshPRsMutationOptions({ queryClient }));
 
   const isAuthenticated = authQuery.data?.authenticated === true;
   const prs = prsQuery.data?.prs ?? [];
@@ -299,7 +288,12 @@ function GitHubRouteView() {
     if (!sessions || sessions.length === 0) return;
     if (!prsQuery.data) return;
 
-    const prStatuses: Array<{ repoSlug: string; prNumber: number; state: "open" | "merged" | "closed"; reviewStatus: "approved" | "changes_requested" | "review_required" | "unknown" }> = [];
+    const prStatuses: Array<{
+      repoSlug: string;
+      prNumber: number;
+      state: "open" | "merged" | "closed";
+      reviewStatus: "approved" | "changes_requested" | "review_required" | "unknown";
+    }> = [];
 
     for (const session of sessions) {
       if (`${activeOwner}/${activeRepo}` !== session.repoSlug) continue;
@@ -334,7 +328,15 @@ function GitHubRouteView() {
     } catch {
       // Non-blocking lifecycle check
     }
-  }, [sessionsQuery.data, prsQuery.data, prs, activeOwner, activeRepo, lifecycleMutation, removeMutation]);
+  }, [
+    sessionsQuery.data,
+    prsQuery.data,
+    prs,
+    activeOwner,
+    activeRepo,
+    lifecycleMutation,
+    removeMutation,
+  ]);
 
   // Run lifecycle check when PRs data updates
   const lastPRsFetchedAt = prsQuery.data?.fetchedAt;
@@ -359,7 +361,7 @@ function GitHubRouteView() {
 
     try {
       // Step 1: Create worktree (includes fetch)
-      setProgress((prev) => prev ? { ...prev, step: "worktree" } : prev);
+      setProgress((prev) => (prev ? { ...prev, step: "worktree" } : prev));
 
       const result = await worktreeCreateMutation.mutateAsync({
         owner: activeOwner,
@@ -380,7 +382,7 @@ function GitHubRouteView() {
         });
       } else {
         // Step 2: Initialize review context
-        setProgress((prev) => prev ? { ...prev, step: "context" } : prev);
+        setProgress((prev) => (prev ? { ...prev, step: "context" } : prev));
 
         contextTimerRef.current = setTimeout(() => {
           setProgress((prev) =>
@@ -440,7 +442,7 @@ function GitHubRouteView() {
       }
 
       // Step 3: Start session
-      setProgress((prev) => prev ? { ...prev, step: "session", contextSubLabel: null } : prev);
+      setProgress((prev) => (prev ? { ...prev, step: "session", contextSubLabel: null } : prev));
 
       const existingProject = projects.find((p) => p.cwd === worktreePath);
       let projectId = existingProject?.id;
@@ -456,6 +458,7 @@ function GitHubRouteView() {
           title,
           workspaceRoot: worktreePath,
           defaultModel: DEFAULT_MODEL_BY_PROVIDER.codex,
+          repoSlug: `${activeOwner}/${activeRepo}`,
           createdAt: new Date().toISOString(),
         });
       }
@@ -498,9 +501,7 @@ function GitHubRouteView() {
             {/* Auto-set IDE notice */}
             {autoSetNotice && (
               <div className="flex items-center justify-between rounded-lg border border-green-500/30 bg-green-500/5 px-4 py-2.5">
-                <span className="text-sm text-green-700 dark:text-green-400">
-                  {autoSetNotice}
-                </span>
+                <span className="text-sm text-green-700 dark:text-green-400">{autoSetNotice}</span>
                 <button
                   type="button"
                   className="ml-3 text-green-700/60 hover:text-green-700 dark:text-green-400/60 dark:hover:text-green-400"
@@ -697,42 +698,42 @@ function GitHubRouteView() {
                       {sessionsQuery.data.sessions
                         .filter((s) => `${activeOwner}/${activeRepo}` === s.repoSlug)
                         .map((session) => (
-                        <div
-                          key={session.id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
-                          onContextMenu={(e) => handleSessionContextMenu(e, session)}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground">
-                              PR #{session.prNumber}: {session.prTitle}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {session.branchName} &middot; {session.diskSizeMB} MB
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {preferredIDE && (
+                          <div
+                            key={session.id}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                            onContextMenu={(e) => handleSessionContextMenu(e, session)}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-foreground">
+                                PR #{session.prNumber}: {session.prTitle}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {session.branchName} &middot; {session.diskSizeMB} MB
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {preferredIDE && (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleOpenInIDE(session.worktreePath, preferredIDE)
+                                  }
+                                >
+                                  Open in {IDE_LABELS[preferredIDE]}
+                                </Button>
+                              )}
                               <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() =>
-                                  handleOpenInIDE(session.worktreePath, preferredIDE)
-                                }
+                                variant="ghost"
+                                size="xs"
+                                onClick={(e) => handleSessionContextMenu(e, session)}
+                                aria-label="Session actions"
                               >
-                                Open in {IDE_LABELS[preferredIDE]}
+                                <MoreVerticalIcon className="size-4" />
                               </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={(e) => handleSessionContextMenu(e, session)}
-                              aria-label="Session actions"
-                            >
-                              <MoreVerticalIcon className="size-4" />
-                            </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </section>
                 )}
@@ -743,7 +744,8 @@ function GitHubRouteView() {
                     {prs.map((pr) => {
                       const isActive = progress?.prNumber === pr.number;
                       const existingSession = sessionsQuery.data?.sessions.find(
-                        (s) => s.prNumber === pr.number && s.repoSlug === `${activeOwner}/${activeRepo}`,
+                        (s) =>
+                          s.prNumber === pr.number && s.repoSlug === `${activeOwner}/${activeRepo}`,
                       );
                       return (
                         <section

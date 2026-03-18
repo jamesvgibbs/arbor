@@ -54,9 +54,7 @@ export class WorktreeStore {
     prNumber: number,
   ): WorktreeSession | undefined {
     const slug = `${owner}/${repo}`.toLowerCase();
-    return sessions.find(
-      (s) => s.repoSlug.toLowerCase() === slug && s.prNumber === prNumber,
-    );
+    return sessions.find((s) => s.repoSlug.toLowerCase() === slug && s.prNumber === prNumber);
   }
 }
 

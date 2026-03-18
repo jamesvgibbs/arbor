@@ -30,7 +30,13 @@ const MODE_ARGS = {
   ],
   "dev:server": ["run", "dev", "--filter=arbor"],
   "dev:web": ["run", "dev", "--filter=@arbortools/web"],
-  "dev:desktop": ["run", "dev", "--filter=@arbortools/desktop", "--filter=@arbortools/web", "--parallel"],
+  "dev:desktop": [
+    "run",
+    "dev",
+    "--filter=@arbortools/desktop",
+    "--filter=@arbortools/web",
+    "--parallel",
+  ],
 } as const satisfies Record<string, ReadonlyArray<string>>;
 
 type DevMode = keyof typeof MODE_ARGS;

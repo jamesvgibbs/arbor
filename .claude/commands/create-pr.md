@@ -216,18 +216,18 @@ Example output:
 
 Use WebFetch to get a random GIF from Giphy based on the PR type. Use this mapping for search terms:
 
-| PR Type       | Giphy Search Term        |
-| ------------- | ------------------------ |
-| Feature       | `new feature excited`    |
-| Bug Fix       | `bug squash victory`     |
-| Documentation | `documentation writing`  |
-| Style         | `beautiful clean`        |
-| Refactor      | `cleaning organizing`    |
-| Performance   | `speed fast rocket`      |
-| Test          | `testing quality check`  |
-| CI            | `automation robot`       |
-| Chore         | `maintenance cleanup`    |
-| Revert        | `undo reverse`           |
+| PR Type       | Giphy Search Term       |
+| ------------- | ----------------------- |
+| Feature       | `new feature excited`   |
+| Bug Fix       | `bug squash victory`    |
+| Documentation | `documentation writing` |
+| Style         | `beautiful clean`       |
+| Refactor      | `cleaning organizing`   |
+| Performance   | `speed fast rocket`     |
+| Test          | `testing quality check` |
+| CI            | `automation robot`      |
+| Chore         | `maintenance cleanup`   |
+| Revert        | `undo reverse`          |
 
 **Fetch a random GIF:**
 
@@ -240,13 +240,13 @@ Prompt: "Find a fun, work-appropriate GIF URL from the search results. Return ju
 
 Alternatively, use one of these curated fallback GIFs if fetch fails:
 
-| PR Type  | Fallback GIF                                                      |
-| -------- | ----------------------------------------------------------------- |
-| Feature  | `![ship it](https://media.giphy.com/media/143vPc6b08locw/giphy.gif)` |
-| Bug Fix  | `![bug](https://media.giphy.com/media/l3q2zbskZp2j8wniE/giphy.gif)`  |
+| PR Type  | Fallback GIF                                                                |
+| -------- | --------------------------------------------------------------------------- |
+| Feature  | `![ship it](https://media.giphy.com/media/143vPc6b08locw/giphy.gif)`        |
+| Bug Fix  | `![bug](https://media.giphy.com/media/l3q2zbskZp2j8wniE/giphy.gif)`         |
 | CI       | `![automation](https://media.giphy.com/media/3o7qE1YN7aBOFPRw8E/giphy.gif)` |
-| Refactor | `![clean](https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif)` |
-| Default  | `![coding](https://media.giphy.com/media/ZVik7pBtu9dNS/giphy.gif)`   |
+| Refactor | `![clean](https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif)`      |
+| Default  | `![coding](https://media.giphy.com/media/ZVik7pBtu9dNS/giphy.gif)`          |
 
 ### Step 8: Confirm with User
 

@@ -72,6 +72,13 @@ const MODEL_PROVIDER_SETTINGS: Array<{
     placeholder: "your-codex-model-slug",
     example: "gpt-6.7-codex-ultra-preview",
   },
+  {
+    provider: "claudeCode",
+    title: "Claude Code",
+    description: "Save additional Claude Code model slugs for the picker and `/model` command.",
+    placeholder: "your-claude-model-slug",
+    example: "claude-sonnet-4-6",
+  },
 ] as const;
 
 function getCustomModelsForProvider(
@@ -79,6 +86,8 @@ function getCustomModelsForProvider(
   provider: ProviderKind,
 ) {
   switch (provider) {
+    case "claudeCode":
+      return settings.customClaudeCodeModels;
     case "codex":
     default:
       return settings.customCodexModels;
@@ -90,6 +99,8 @@ function getDefaultCustomModelsForProvider(
   provider: ProviderKind,
 ) {
   switch (provider) {
+    case "claudeCode":
+      return defaults.customClaudeCodeModels;
     case "codex":
     default:
       return defaults.customCodexModels;
@@ -98,6 +109,8 @@ function getDefaultCustomModelsForProvider(
 
 function patchCustomModels(provider: ProviderKind, models: string[]) {
   switch (provider) {
+    case "claudeCode":
+      return { customClaudeCodeModels: models };
     case "codex":
     default:
       return { customCodexModels: models };
@@ -125,11 +138,7 @@ function GitHubSettingsSection() {
   const handleStartAuth = useCallback(() => {
     startAuthMutation.mutate(undefined, {
       onSuccess: (data) => {
-        if (
-          !pollingRef.current &&
-          data.status === "device_flow_started" &&
-          data.deviceFlow
-        ) {
+        if (!pollingRef.current && data.status === "device_flow_started" && data.deviceFlow) {
           pollingRef.current = true;
           pollAuthMutation.mutate(
             {
@@ -327,9 +336,7 @@ function GitHubSettingsSection() {
             {repoError ? <p className="text-xs text-destructive">{repoError}</p> : null}
 
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                Tracked repositories: {repos.length}
-              </p>
+              <p className="text-xs text-muted-foreground">Tracked repositories: {repos.length}</p>
 
               {repos.length > 0 ? (
                 <div className="space-y-2">
@@ -391,14 +398,11 @@ function IDESettingsSection() {
   const preferredIDE = ideQuery.data?.preferredIDE ?? null;
   const detected = ideQuery.data?.detectedIDEs;
   const detectedList: IDEKind[] = detected
-    ? (Object.entries(detected) as [IDEKind, boolean][])
-        .filter(([, v]) => v)
-        .map(([k]) => k)
+    ? (Object.entries(detected) as [IDEKind, boolean][]).filter(([, v]) => v).map(([k]) => k)
     : [];
 
   // Check if preferred IDE is set but no longer detected
-  const preferredNotDetected =
-    preferredIDE !== null && detected && !detected[preferredIDE];
+  const preferredNotDetected = preferredIDE !== null && detected && !detected[preferredIDE];
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5">
@@ -417,7 +421,8 @@ function IDESettingsSection() {
 
       {ideQuery.isSuccess && detectedList.length === 0 && (
         <div className="rounded-lg border border-dashed border-border bg-background px-3 py-4 text-xs text-muted-foreground">
-          No supported IDEs detected in PATH. Install Cursor, Windsurf, or VS Code and ensure their CLI command is available.
+          No supported IDEs detected in PATH. Install Cursor, Windsurf, or VS Code and ensure their
+          CLI command is available.
         </div>
       )}
 
@@ -586,6 +591,7 @@ function SettingsRouteView() {
     Record<ProviderKind, string>
   >({
     codex: "",
+    claudeCode: "",
   });
   const [customModelErrorByProvider, setCustomModelErrorByProvider] = useState<
     Partial<Record<ProviderKind, string | null>>

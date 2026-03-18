@@ -231,7 +231,9 @@ export interface NativeApi {
     getPRDetails: (input: GitHubPRDetailsInput) => Promise<any>;
     refreshPRs: (input: GitHubRefreshInput) => Promise<GitHubPRListResult>;
     submitReview: (input: GitHubSubmitReviewInput) => Promise<{ ok: true }>;
-    getReviewComments: (input: GitHubGetReviewCommentsInput) => Promise<GitHubGetReviewCommentsResult>;
+    getReviewComments: (
+      input: GitHubGetReviewCommentsInput,
+    ) => Promise<GitHubGetReviewCommentsResult>;
   };
   worktree: {
     create: (input: WorktreeCreateInput) => Promise<WorktreeCreateResult>;

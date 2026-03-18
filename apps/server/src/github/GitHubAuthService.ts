@@ -27,9 +27,7 @@ export class GitHubAuthService {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(
-        `Failed to start device flow: ${res.status} ${res.statusText} - ${text}`,
-      );
+      throw new Error(`Failed to start device flow: ${res.status} ${res.statusText} - ${text}`);
     }
 
     const data = (await res.json()) as DeviceFlowResponse;
@@ -66,9 +64,7 @@ export class GitHubAuthService {
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(
-          `Token poll request failed: ${res.status} ${res.statusText} - ${text}`,
-        );
+        throw new Error(`Token poll request failed: ${res.status} ${res.statusText} - ${text}`);
       }
 
       const data = (await res.json()) as
@@ -94,9 +90,7 @@ export class GitHubAuthService {
           break;
 
         case "expired_token":
-          throw new Error(
-            "Device code expired. Please restart the authentication flow.",
-          );
+          throw new Error("Device code expired. Please restart the authentication flow.");
 
         case "access_denied":
           throw new Error("User denied the authorization request.");
@@ -115,9 +109,7 @@ export class GitHubAuthService {
    * Validate an access token by calling the GitHub user endpoint.
    * Returns the authenticated user's username and avatar URL.
    */
-  static async validateToken(
-    token: string,
-  ): Promise<{ username: string; avatarUrl: string }> {
+  static async validateToken(token: string): Promise<{ username: string; avatarUrl: string }> {
     const res = await fetch(GITHUB_API_USER_URL, {
       headers: {
         Accept: "application/json",
@@ -127,9 +119,7 @@ export class GitHubAuthService {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(
-        `Token validation failed: ${res.status} ${res.statusText} - ${text}`,
-      );
+      throw new Error(`Token validation failed: ${res.status} ${res.statusText} - ${text}`);
     }
 
     const data = (await res.json()) as {

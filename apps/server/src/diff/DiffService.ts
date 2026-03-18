@@ -34,9 +34,7 @@ export class DiffService {
         status: normalizeFileStatus(file.status),
         additions: file.additions,
         deletions: file.deletions,
-        ...(file.previous_filename
-          ? { previousFilename: file.previous_filename }
-          : {}),
+        ...(file.previous_filename ? { previousFilename: file.previous_filename } : {}),
       });
     }
 
@@ -71,10 +69,10 @@ export class DiffService {
 
     let oldContent = "";
     try {
-      const { stdout } = await execAsync(
-        `git show ${mergeBase}:${filename}`,
-        { cwd: worktreePath, maxBuffer: 10 * 1024 * 1024 },
-      );
+      const { stdout } = await execAsync(`git show ${mergeBase}:${filename}`, {
+        cwd: worktreePath,
+        maxBuffer: 10 * 1024 * 1024,
+      });
       oldContent = stdout;
     } catch {
       // New file — old content is empty
@@ -90,10 +88,7 @@ export class DiffService {
     return { oldContent, newContent };
   }
 
-  private async getMergeBase(
-    worktreePath: string,
-    baseBranch: string,
-  ): Promise<string> {
+  private async getMergeBase(worktreePath: string, baseBranch: string): Promise<string> {
     try {
       await execAsync("git fetch origin --no-tags --quiet", {
         cwd: worktreePath,
@@ -107,10 +102,7 @@ export class DiffService {
     // remote-tracking ref doesn't exist (e.g. bare-clone worktrees).
     for (const ref of [`origin/${baseBranch}`, baseBranch]) {
       try {
-        const { stdout } = await execAsync(
-          `git merge-base HEAD ${ref}`,
-          { cwd: worktreePath },
-        );
+        const { stdout } = await execAsync(`git merge-base HEAD ${ref}`, { cwd: worktreePath });
         return stdout.trim();
       } catch {
         continue;
@@ -123,9 +115,7 @@ export class DiffService {
   }
 }
 
-function normalizeFileStatus(
-  status: string,
-): PRChangedFile["status"] {
+function normalizeFileStatus(status: string): PRChangedFile["status"] {
   switch (status) {
     case "added":
       return "added";

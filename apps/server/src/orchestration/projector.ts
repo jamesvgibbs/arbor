@@ -182,6 +182,7 @@ export function projectEvent(
             title: payload.title,
             workspaceRoot: payload.workspaceRoot,
             defaultModel: payload.defaultModel,
+            repoSlug: payload.repoSlug,
             scripts: payload.scripts,
             createdAt: payload.createdAt,
             updatedAt: payload.updatedAt,
@@ -214,6 +215,7 @@ export function projectEvent(
                   ...(payload.defaultModel !== undefined
                     ? { defaultModel: payload.defaultModel }
                     : {}),
+                  ...(payload.repoSlug !== undefined ? { repoSlug: payload.repoSlug } : {}),
                   ...(payload.scripts !== undefined ? { scripts: payload.scripts } : {}),
                   updatedAt: payload.updatedAt,
                 }

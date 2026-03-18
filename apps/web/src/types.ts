@@ -80,6 +80,7 @@ export interface Project {
   cwd: string;
   model: string;
   expanded: boolean;
+  repoSlug: string | null;
   scripts: ProjectScript[];
 }
 

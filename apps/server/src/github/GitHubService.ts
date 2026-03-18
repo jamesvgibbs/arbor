@@ -1,8 +1,4 @@
-import type {
-  PRCard,
-  PRDetails,
-  GitHubRateLimitInfo,
-} from "./types";
+import type { PRCard, PRDetails, GitHubRateLimitInfo } from "./types";
 
 const GITHUB_API_BASE = "https://api.github.com";
 
@@ -89,18 +85,10 @@ export class GitHubService {
   /**
    * Get full details for a single pull request including diff statistics.
    */
-  async getPRDetails(
-    owner: string,
-    repo: string,
-    number: number,
-  ): Promise<PRDetails> {
+  async getPRDetails(owner: string, repo: string, number: number): Promise<PRDetails> {
     const [pr, reviews] = await Promise.all([
-      this.get<GitHubPullResponse>(
-        `/repos/${owner}/${repo}/pulls/${number}`,
-      ),
-      this.get<GitHubReviewResponse[]>(
-        `/repos/${owner}/${repo}/pulls/${number}/reviews`,
-      ),
+      this.get<GitHubPullResponse>(`/repos/${owner}/${repo}/pulls/${number}`),
+      this.get<GitHubReviewResponse[]>(`/repos/${owner}/${repo}/pulls/${number}/reviews`),
     ]);
 
     // Fetch combined status now that we have the head SHA
@@ -212,10 +200,7 @@ export class GitHubService {
     if (comments && comments.length > 0) {
       payload.comments = comments;
     }
-    await this.post(
-      `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
-      payload,
-    );
+    await this.post(`/repos/${owner}/${repo}/pulls/${prNumber}/reviews`, payload);
   }
 
   /**
@@ -357,10 +342,7 @@ function mapCIState(state: CombinedStatusResponse["state"]): CIStatus {
  * Derive the overall review status from the list of reviews.
  * Takes the most recent review from each reviewer and determines the aggregate.
  */
-function deriveReviewStatus(
-  reviews: GitHubReviewResponse[],
-  pr: GitHubPullResponse,
-): ReviewStatus {
+function deriveReviewStatus(reviews: GitHubReviewResponse[], pr: GitHubPullResponse): ReviewStatus {
   if (reviews.length === 0) {
     return pr.requested_reviewers.length > 0 ? "review_required" : "unknown";
   }
@@ -369,10 +351,7 @@ function deriveReviewStatus(
   const latestByReviewer = new Map<string, GitHubReviewResponse>();
   for (const review of reviews) {
     const existing = latestByReviewer.get(review.user.login);
-    if (
-      !existing ||
-      new Date(review.submitted_at) > new Date(existing.submitted_at)
-    ) {
+    if (!existing || new Date(review.submitted_at) > new Date(existing.submitted_at)) {
       latestByReviewer.set(review.user.login, review);
     }
   }

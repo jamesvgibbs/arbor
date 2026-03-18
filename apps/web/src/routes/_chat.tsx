@@ -148,7 +148,9 @@ function LifecycleCleanupWiring() {
   const reposQuery = useQuery(githubReposQueryOptions());
   const worktreeListQuery = useQuery(worktreeListQueryOptions());
   const arborSettingsQuery = useQuery(arborSettingsQueryOptions());
-  const checkLifecycleMutation = useMutation(worktreeCheckLifecycleMutationOptions({ queryClient }));
+  const checkLifecycleMutation = useMutation(
+    worktreeCheckLifecycleMutationOptions({ queryClient }),
+  );
   const removeMutation = useMutation(worktreeRemoveMutationOptions({ queryClient }));
 
   const [approvalToasts, setApprovalToasts] = useState<

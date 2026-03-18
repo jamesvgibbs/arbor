@@ -29,10 +29,7 @@ export class RepoStore {
   /**
    * Persist the repo list to disk, creating the directory if needed.
    */
-  static async saveRepos(
-    configDir: string,
-    repos: RepoConfig[],
-  ): Promise<void> {
+  static async saveRepos(configDir: string, repos: RepoConfig[]): Promise<void> {
     await mkdir(configDir, { recursive: true });
     const filePath = path.join(configDir, REPOS_FILENAME);
     await writeFile(filePath, JSON.stringify(repos, null, 2), "utf-8");
@@ -42,11 +39,7 @@ export class RepoStore {
    * Add a repo to the list. No-op if the repo already exists.
    * Returns the updated list.
    */
-  static async addRepo(
-    configDir: string,
-    owner: string,
-    repo: string,
-  ): Promise<RepoConfig[]> {
+  static async addRepo(configDir: string, owner: string, repo: string): Promise<RepoConfig[]> {
     const repos = await RepoStore.loadRepos(configDir);
 
     const exists = repos.some(
@@ -59,10 +52,7 @@ export class RepoStore {
       return repos;
     }
 
-    const updated = [
-      ...repos,
-      { owner, repo, addedAt: new Date().toISOString() },
-    ];
+    const updated = [...repos, { owner, repo, addedAt: new Date().toISOString() }];
     await RepoStore.saveRepos(configDir, updated);
     return updated;
   }
@@ -71,11 +61,7 @@ export class RepoStore {
    * Remove a repo from the list.
    * Returns the updated list.
    */
-  static async removeRepo(
-    configDir: string,
-    owner: string,
-    repo: string,
-  ): Promise<RepoConfig[]> {
+  static async removeRepo(configDir: string, owner: string, repo: string): Promise<RepoConfig[]> {
     const repos = await RepoStore.loadRepos(configDir);
 
     const updated = repos.filter(

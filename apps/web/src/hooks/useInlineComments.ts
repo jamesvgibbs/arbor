@@ -38,7 +38,9 @@ function saveComments(storageKey: string, comments: PendingComment[]) {
     } else {
       localStorage.setItem(STORAGE_PREFIX + storageKey, JSON.stringify(comments));
     }
-  } catch { /* storage full or unavailable */ }
+  } catch {
+    /* storage full or unavailable */
+  }
 }
 
 /**
@@ -46,8 +48,8 @@ function saveComments(storageKey: string, comments: PendingComment[]) {
  * @param storageKey Unique key for this review, e.g. "owner/repo#123"
  */
 export function useInlineComments(storageKey: string) {
-  const [pendingComments, setPendingComments] = useState<PendingComment[]>(
-    () => loadComments(storageKey),
+  const [pendingComments, setPendingComments] = useState<PendingComment[]>(() =>
+    loadComments(storageKey),
   );
   const [activeDraft, setActiveDraft] = useState<CommentDraft | null>(null);
 

@@ -1,10 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  DEFAULT_MODEL_BY_PROVIDER,
-  type WorktreeSessionWithSize,
-} from "@arbortools/contracts";
+import { DEFAULT_MODEL_BY_PROVIDER, type WorktreeSessionWithSize } from "@arbortools/contracts";
 import {
   FolderIcon,
   TrashIcon,
@@ -18,10 +15,7 @@ import {
   PlayIcon,
 } from "lucide-react";
 
-import {
-  worktreeListQueryOptions,
-  worktreeRemoveMutationOptions,
-} from "~/lib/worktreeReactQuery";
+import { worktreeListQueryOptions, worktreeRemoveMutationOptions } from "~/lib/worktreeReactQuery";
 import { useHandleNewThread } from "~/hooks/useHandleNewThread";
 import { ensureNativeApi } from "../nativeApi";
 import { newCommandId, newProjectId } from "../lib/utils";
@@ -55,11 +49,7 @@ function CopyButton({ text }: { text: string }) {
         setTimeout(() => setCopied(false), 2000);
       }}
     >
-      {copied ? (
-        <CheckIcon className="size-3 text-green-500" />
-      ) : (
-        <CopyIcon className="size-3" />
-      )}
+      {copied ? <CheckIcon className="size-3 text-green-500" /> : <CopyIcon className="size-3" />}
     </button>
   );
 }
@@ -67,10 +57,9 @@ function CopyButton({ text }: { text: string }) {
 function SessionsRouteView() {
   const queryClient = useQueryClient();
   const sessionsQuery = useQuery(worktreeListQueryOptions());
-  const removeMutation = useMutation(
-    worktreeRemoveMutationOptions({ queryClient }),
-  );
-  const { handleNewThread, projects } = useHandleNewThread();
+  const removeMutation = useMutation(worktreeRemoveMutationOptions({ queryClient }));
+  const navigate = useNavigate();
+  const { projects } = useHandleNewThread();
 
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -123,9 +112,7 @@ function SessionsRouteView() {
               <section className="rounded-2xl border border-dashed border-border bg-card p-5">
                 <div className="flex flex-col items-center gap-2 py-8 text-center">
                   <FolderIcon className="size-8 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">
-                    No active worktree sessions.
-                  </p>
+                  <p className="text-sm text-muted-foreground">No active worktree sessions.</p>
                   <p className="text-xs text-muted-foreground">
                     Start a review from the Pull Requests page to create a session.
                   </p>
@@ -153,9 +140,7 @@ function SessionsRouteView() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          <span className="font-medium text-foreground/70">
-                            {session.repoSlug}
-                          </span>
+                          <span className="font-medium text-foreground/70">{session.repoSlug}</span>
 
                           <span className="flex items-center gap-1">
                             <GitBranchIcon className="size-3" />
@@ -236,9 +221,9 @@ function SessionsRouteView() {
                                   });
                                 }
 
-                                await handleNewThread(projectId, {
-                                  branch: session.branchName,
-                                  worktreePath: session.worktreePath,
+                                await navigate({
+                                  to: "/review/$projectId",
+                                  params: { projectId },
                                 });
                               }}
                             >

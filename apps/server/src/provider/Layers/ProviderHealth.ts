@@ -23,9 +23,11 @@ import {
   parseCodexCliVersion,
 } from "../codexCliVersion";
 import { ProviderHealth, type ProviderHealthShape } from "../Services/ProviderHealth";
+import { normalizeModelSlug } from "@arbortools/shared/model";
 
 const DEFAULT_TIMEOUT_MS = 4_000;
 const CODEX_PROVIDER = "codex" as const;
+const CLAUDE_CODE_PROVIDER = "claudeCode" as const;
 
 // ── Pure helpers ────────────────────────────────────────────────────
 
@@ -390,6 +392,137 @@ export const checkCodexProviderStatus: Effect.Effect<
   } satisfies ServerProviderStatus;
 });
 
+// ── Claude Code health check ─────────────────────────────────────────
+
+/**
+ * Read the user's preferred model from `~/.claude/settings.json`.
+ *
+ * The `model` field may include a context-window suffix like `[1m]`
+ * (e.g. `"opus[1m]"`), which is stripped before alias resolution.
+ */
+function parseClaudeCodeModel(content: string): string | undefined {
+  try {
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const rawModel = typeof parsed.model === "string" ? parsed.model : undefined;
+    if (!rawModel) return undefined;
+
+    // Strip context-window suffix like "[1m]"
+    const bare = rawModel.replace(/\[.*\]$/, "").trim();
+    if (!bare) return undefined;
+
+    return normalizeModelSlug(bare, "claudeCode") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export const readClaudeCodeDetectedModel = Effect.gen(function* () {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const settingsPath = path.join(OS.homedir(), ".claude", "settings.json");
+
+  const content = yield* fileSystem
+    .readFileString(settingsPath)
+    .pipe(Effect.orElseSucceed(() => undefined));
+  if (content === undefined) return undefined;
+
+  return parseClaudeCodeModel(content);
+});
+
+const runClaudeCodeCommand = (args: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const command = ChildProcess.make("claude", [...args], {
+      shell: process.platform === "win32",
+    });
+
+    const child = yield* spawner.spawn(command);
+
+    const [stdout, stderr, exitCode] = yield* Effect.all(
+      [
+        collectStreamAsString(child.stdout),
+        collectStreamAsString(child.stderr),
+        child.exitCode.pipe(Effect.map(Number)),
+      ],
+      { concurrency: "unbounded" },
+    );
+
+    return { stdout, stderr, code: exitCode } satisfies CommandResult;
+  }).pipe(Effect.scoped);
+
+export const checkClaudeCodeProviderStatus: Effect.Effect<
+  ServerProviderStatus,
+  never,
+  ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem | Path.Path
+> = Effect.gen(function* () {
+  const checkedAt = new Date().toISOString();
+
+  // Probe 1: `claude --version` — is the CLI reachable?
+  const versionProbe = yield* runClaudeCodeCommand(["--version"]).pipe(
+    Effect.timeoutOption(DEFAULT_TIMEOUT_MS),
+    Effect.result,
+  );
+
+  if (Result.isFailure(versionProbe)) {
+    const error = versionProbe.failure;
+    const lower = error instanceof Error ? error.message.toLowerCase() : "";
+    const isMissing =
+      lower.includes("enoent") || lower.includes("notfound") || lower.includes("command not found");
+    return {
+      provider: CLAUDE_CODE_PROVIDER,
+      status: "error" as const,
+      available: false,
+      authStatus: "unknown" as const,
+      checkedAt,
+      message: isMissing
+        ? "Claude Code CLI (`claude`) is not installed or not on PATH."
+        : `Failed to execute Claude Code CLI health check: ${error instanceof Error ? error.message : String(error)}.`,
+    };
+  }
+
+  if (Option.isNone(versionProbe.success)) {
+    return {
+      provider: CLAUDE_CODE_PROVIDER,
+      status: "error" as const,
+      available: false,
+      authStatus: "unknown" as const,
+      checkedAt,
+      message: "Claude Code CLI is installed but failed to run. Timed out while running command.",
+    };
+  }
+
+  const version = versionProbe.success.value;
+  if (version.code !== 0) {
+    const detail = detailFromResult(version);
+    return {
+      provider: CLAUDE_CODE_PROVIDER,
+      status: "error" as const,
+      available: false,
+      authStatus: "unknown" as const,
+      checkedAt,
+      message: detail
+        ? `Claude Code CLI is installed but failed to run. ${detail}`
+        : "Claude Code CLI is installed but failed to run.",
+    };
+  }
+
+  // Probe 2: Detect the user's preferred model from ~/.claude/settings.json
+  const detectedModel = yield* readClaudeCodeDetectedModel.pipe(
+    Effect.orElseSucceed(() => undefined),
+  );
+
+  // Claude Code uses Anthropic API key from environment — we assume authenticated
+  // if the CLI is reachable. A more thorough auth check could be added later.
+  return {
+    provider: CLAUDE_CODE_PROVIDER,
+    status: "ready" as const,
+    available: true,
+    authStatus: "authenticated" as const,
+    checkedAt,
+    ...(detectedModel ? { detectedModel } : {}),
+  } satisfies ServerProviderStatus;
+});
+
 // ── Layer ───────────────────────────────────────────────────────────
 
 export const ProviderHealthLive = Layer.effect(
@@ -400,8 +533,17 @@ export const ProviderHealthLive = Layer.effect(
       Effect.forkScoped,
     );
 
+    const claudeCodeStatusFiber = yield* checkClaudeCodeProviderStatus.pipe(
+      Effect.map(Array.of),
+      Effect.forkScoped,
+    );
+
     return {
-      getStatuses: Fiber.join(codexStatusFiber),
+      getStatuses: Effect.gen(function* () {
+        const codexStatuses = yield* Fiber.join(codexStatusFiber);
+        const claudeCodeStatuses = yield* Fiber.join(claudeCodeStatusFiber);
+        return [...codexStatuses, ...claudeCodeStatuses];
+      }),
     } satisfies ProviderHealthShape;
   }),
 );

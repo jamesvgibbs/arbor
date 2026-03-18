@@ -64,13 +64,9 @@ export function FileTree({
               {shortenPath(file.filename)}
             </span>
             <span className="shrink-0 text-[10px] text-muted-foreground">
-              {file.additions > 0 && (
-                <span className="text-green-500">+{file.additions}</span>
-              )}
+              {file.additions > 0 && <span className="text-green-500">+{file.additions}</span>}
               {file.additions > 0 && file.deletions > 0 && " "}
-              {file.deletions > 0 && (
-                <span className="text-red-500">-{file.deletions}</span>
-              )}
+              {file.deletions > 0 && <span className="text-red-500">-{file.deletions}</span>}
             </span>
           </button>
         ))}
@@ -80,10 +76,14 @@ export function FileTree({
         <p className="text-[10px] text-muted-foreground">
           {files.length} file{files.length !== 1 ? "s" : ""} changed
           {totalAdditions > 0 && (
-            <>, <span className="text-green-500">+{totalAdditions}</span></>
+            <>
+              , <span className="text-green-500">+{totalAdditions}</span>
+            </>
           )}
           {totalDeletions > 0 && (
-            <>, <span className="text-red-500">-{totalDeletions}</span></>
+            <>
+              , <span className="text-red-500">-{totalDeletions}</span>
+            </>
           )}
         </p>
       </div>

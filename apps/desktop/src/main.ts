@@ -344,8 +344,8 @@ function resolveEmbeddedCommitHash(): string | null {
 
   try {
     const raw = FS.readFileSync(packageJsonPath, "utf8");
-    const parsed = JSON.parse(raw) as { arborCommitHash?: unknown; arborCommitHash?: unknown };
-    return normalizeCommitHash(parsed.arborCommitHash ?? parsed.arborCommitHash);
+    const parsed = JSON.parse(raw) as { arborCommitHash?: unknown };
+    return normalizeCommitHash(parsed.arborCommitHash);
   } catch {
     return null;
   }

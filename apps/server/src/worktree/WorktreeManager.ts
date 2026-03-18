@@ -22,10 +22,7 @@ interface ArborSettings {
 
 const SETTINGS_FILENAME = "settings.json";
 
-const DEFAULT_BASE_PATH = path.join(
-  process.env.HOME ?? process.env.USERPROFILE ?? "/tmp",
-  "Code",
-);
+const DEFAULT_BASE_PATH = path.join(process.env.HOME ?? process.env.USERPROFILE ?? "/tmp", "Code");
 
 export class WorktreeManager {
   private configDir: string;
@@ -51,12 +48,7 @@ export class WorktreeManager {
     const sessions = await WorktreeStore.load(this.configDir);
 
     // Check for existing session for this PR
-    const existing = WorktreeStore.findByPR(
-      sessions,
-      input.owner,
-      input.repo,
-      input.prNumber,
-    );
+    const existing = WorktreeStore.findByPR(sessions, input.owner, input.repo, input.prNumber);
 
     if (existing) {
       // Verify the worktree still exists on disk
@@ -78,11 +70,7 @@ export class WorktreeManager {
     );
 
     // Ensure bare clone exists
-    const bareDir = await WorktreeService.ensureBareClone(
-      this.basePath,
-      repoName,
-      input.repoUrl,
-    );
+    const bareDir = await WorktreeService.ensureBareClone(this.basePath, repoName, input.repoUrl);
 
     // Create the worktree
     await WorktreeService.createWorktree(bareDir, worktreePath, input.branchName);
@@ -124,9 +112,7 @@ export class WorktreeManager {
     // Clean up sessions for missing worktrees
     const missing = sessionsWithSize.filter((s) => (s as any)._missing);
     if (missing.length > 0) {
-      const valid = sessions.filter(
-        (s) => !missing.some((m) => m.id === s.id),
-      );
+      const valid = sessions.filter((s) => !missing.some((m) => m.id === s.id));
       await WorktreeStore.save(this.configDir, valid);
     }
 
@@ -241,16 +227,10 @@ export class WorktreeManager {
     preferredIDE: IDEKind | null;
     detectedIDEs: { cursor: boolean; windsurf: boolean; vscode: boolean };
   }> {
-    const [settings, detectedIDEs] = await Promise.all([
-      this.loadSettings(),
-      this.detectIDEs(),
-    ]);
+    const [settings, detectedIDEs] = await Promise.all([this.loadSettings(), this.detectIDEs()]);
 
     // If preferred IDE was set but is no longer detected, reset it
-    if (
-      settings.preferredIDE &&
-      !detectedIDEs[settings.preferredIDE]
-    ) {
+    if (settings.preferredIDE && !detectedIDEs[settings.preferredIDE]) {
       settings.preferredIDE = null;
       await this.saveSettings(settings);
     }
@@ -261,9 +241,7 @@ export class WorktreeManager {
     };
   }
 
-  async updateIDESettings(input: {
-    preferredIDE: IDEKind | null;
-  }): Promise<{
+  async updateIDESettings(input: { preferredIDE: IDEKind | null }): Promise<{
     preferredIDE: IDEKind | null;
     detectedIDEs: { cursor: boolean; windsurf: boolean; vscode: boolean };
   }> {
@@ -320,7 +298,10 @@ export class WorktreeManager {
     }
   }
 
-  private async checkGitHub(): Promise<{ status: "ok" | "not_configured" | "invalid"; username: string | null }> {
+  private async checkGitHub(): Promise<{
+    status: "ok" | "not_configured" | "invalid";
+    username: string | null;
+  }> {
     try {
       const { TokenStore } = await import("../github/TokenStore");
       const token = await TokenStore.loadToken(this.configDir);
@@ -333,12 +314,19 @@ export class WorktreeManager {
     }
   }
 
-  private async checkIDE(): Promise<{ status: "ok" | "not_configured" | "missing"; name: string | null }> {
+  private async checkIDE(): Promise<{
+    status: "ok" | "not_configured" | "missing";
+    name: string | null;
+  }> {
     const settings = await this.loadSettings();
     if (!settings.preferredIDE) return { status: "not_configured", name: null };
     const detected = await this.detectIDEs();
     if (detected[settings.preferredIDE]) {
-      const labels: Record<IDEKind, string> = { cursor: "Cursor", windsurf: "Windsurf", vscode: "VS Code" };
+      const labels: Record<IDEKind, string> = {
+        cursor: "Cursor",
+        windsurf: "Windsurf",
+        vscode: "VS Code",
+      };
       return { status: "ok", name: labels[settings.preferredIDE] };
     }
     return { status: "missing", name: settings.preferredIDE };
@@ -398,9 +386,21 @@ export class WorktreeManager {
       state: "open" | "merged" | "closed";
       reviewStatus: "approved" | "changes_requested" | "review_required" | "unknown";
     }>,
-  ): Promise<{ actions: Array<{ sessionId: string; prNumber: number; repoSlug: string; action: "auto_removed" | "approved" }> }> {
+  ): Promise<{
+    actions: Array<{
+      sessionId: string;
+      prNumber: number;
+      repoSlug: string;
+      action: "auto_removed" | "approved";
+    }>;
+  }> {
     const sessions = await WorktreeStore.load(this.configDir);
-    const actions: Array<{ sessionId: string; prNumber: number; repoSlug: string; action: "auto_removed" | "approved" }> = [];
+    const actions: Array<{
+      sessionId: string;
+      prNumber: number;
+      repoSlug: string;
+      action: "auto_removed" | "approved";
+    }> = [];
 
     for (const status of prStatuses) {
       const session = sessions.find(
@@ -424,11 +424,13 @@ export class WorktreeManager {
         } catch {
           // Best-effort cleanup
         }
-      } else if (
-        status.state === "open" &&
-        status.reviewStatus === "approved"
-      ) {
-        await logCleanup("approved_offered", status.repoSlug, status.prNumber, "PR approved — cleanup offered");
+      } else if (status.state === "open" && status.reviewStatus === "approved") {
+        await logCleanup(
+          "approved_offered",
+          status.repoSlug,
+          status.prNumber,
+          "PR approved — cleanup offered",
+        );
         actions.push({
           sessionId: session.id,
           prNumber: status.prNumber,

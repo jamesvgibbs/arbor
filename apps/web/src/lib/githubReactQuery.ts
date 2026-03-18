@@ -1,4 +1,9 @@
-import type { GitHubPRListResult, GitHubRepoConfig, GitHubAuthStatus, GitHubGetReviewCommentsResult } from "@arbortools/contracts";
+import type {
+  GitHubPRListResult,
+  GitHubRepoConfig,
+  GitHubAuthStatus,
+  GitHubGetReviewCommentsResult,
+} from "@arbortools/contracts";
 import { queryOptions, mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { ensureNativeApi } from "../nativeApi";
 

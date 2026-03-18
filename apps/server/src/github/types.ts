@@ -34,11 +34,7 @@ export interface PRCard {
   createdAt: string;
   updatedAt: string;
   ciStatus: "success" | "failure" | "pending" | "unknown";
-  reviewStatus:
-    | "approved"
-    | "changes_requested"
-    | "review_required"
-    | "unknown";
+  reviewStatus: "approved" | "changes_requested" | "review_required" | "unknown";
   isDraft: boolean;
 }
 

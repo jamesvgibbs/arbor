@@ -19,9 +19,7 @@ export const diffQueryKeys = {
     ["diff", "fileContent", worktreePath, baseBranch, filename] as const,
 };
 
-export function diffChangedFilesQueryOptions(
-  input: DiffGetChangedFilesInput | null,
-) {
+export function diffChangedFilesQueryOptions(input: DiffGetChangedFilesInput | null) {
   return queryOptions({
     queryKey: diffQueryKeys.changedFiles(
       input?.owner ?? "",
@@ -38,9 +36,7 @@ export function diffChangedFilesQueryOptions(
   });
 }
 
-export function diffLocalDiffQueryOptions(
-  input: DiffGetLocalDiffInput | null,
-) {
+export function diffLocalDiffQueryOptions(input: DiffGetLocalDiffInput | null) {
   return queryOptions({
     queryKey: diffQueryKeys.localDiff(
       input?.worktreePath ?? "",
@@ -57,9 +53,7 @@ export function diffLocalDiffQueryOptions(
   });
 }
 
-export function diffFileContentQueryOptions(
-  input: DiffGetFileContentInput | null,
-) {
+export function diffFileContentQueryOptions(input: DiffGetFileContentInput | null) {
   return queryOptions({
     queryKey: diffQueryKeys.fileContent(
       input?.worktreePath ?? "",

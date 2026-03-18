@@ -1,4 +1,11 @@
-import { CheckpointRef, EventId, MessageId, ProjectId, ThreadId, TurnId } from "@arbortools/contracts";
+import {
+  CheckpointRef,
+  EventId,
+  MessageId,
+  ProjectId,
+  ThreadId,
+  TurnId,
+} from "@arbortools/contracts";
 import { assert, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import * as SqlClient from "effect/unstable/sql/SqlClient";
@@ -207,6 +214,7 @@ projectionSnapshotLayer("ProjectionSnapshotQuery", (it) => {
           title: "Project 1",
           workspaceRoot: "/tmp/project-1",
           defaultModel: "gpt-5-codex",
+          repoSlug: null,
           scripts: [
             {
               id: "script-1",

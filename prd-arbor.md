@@ -4,13 +4,13 @@
 
 Arbor is a local Electron desktop application that bridges GitHub pull request discovery with isolated git worktree creation and scoped Claude Code sessions. Engineers select an open PR from any GitHub repository, Arbor creates a git worktree under a configurable local path, optionally scaffolds a CLAUDE.md review context file, and launches a Claude Code session rooted in that worktree — all without leaving the app or touching their main branch.
 
-| Field        | Value                    |
-| ------------ | ------------------------ |
-| Product Lead | @jgibbs                  |
-| Tech Lead    | @jgibbs                  |
-| Design Lead  | N/A                      |
-| Epic         | Link epic once created   |
-| Approved By  |                          |
+| Field        | Value                  |
+| ------------ | ---------------------- |
+| Product Lead | @jgibbs                |
+| Tech Lead    | @jgibbs                |
+| Design Lead  | N/A                    |
+| Epic         | Link epic once created |
+| Approved By  |                        |
 
 ## Goal
 
@@ -197,9 +197,9 @@ New bounded contexts added on top of T3 Code:
    c. Verify Claude Code adapter PR (#179) is merged and functional; run local smoke test
    d. Remove or stub Codex-only UI paths to reduce noise during development
    e. Establish Arbor-specific directory structure:
-      i. `apps/server/src/github/` — GitHub integration module
-      ii. `apps/server/src/worktree/` — Worktree management module
-      iii. `apps/server/src/review-context/` — CLAUDE.md scaffolding module
+   i. `apps/server/src/github/` — GitHub integration module
+   ii. `apps/server/src/worktree/` — Worktree management module
+   iii. `apps/server/src/review-context/` — CLAUDE.md scaffolding module
 4. **Acceptance Criteria**:
    a. App launches as "Arbor" with no Codex references in visible UI
    b. A Claude Code session can be started against a manually specified local directory (baseline parity with T3 Code)
@@ -214,9 +214,9 @@ New bounded contexts added on top of T3 Code:
 3. **Implementation**:
    a. Register a GitHub OAuth App with scopes: `repo` (read), `read:user`
    b. Implement Device Flow in Electron main process:
-      i. POST to `https://github.com/login/device/code`
-      ii. Display user code + verification URL in app (user opens browser, enters code)
-      iii. Poll `https://github.com/login/oauth/access_token` until authorized
+   i. POST to `https://github.com/login/device/code`
+   ii. Display user code + verification URL in app (user opens browser, enters code)
+   iii. Poll `https://github.com/login/oauth/access_token` until authorized
    c. Store token via `electron.safeStorage.encryptString` → write encrypted blob to app config file
    d. Expose IPC handlers: `github:authenticate`, `github:logout`, `github:getAuthStatus`
    e. On app launch, check for stored token and validate with `GET /user`
@@ -233,15 +233,15 @@ New bounded contexts added on top of T3 Code:
 3. **Implementation**:
    a. Persist repo list to local JSON config file (e.g. `~/Library/Application Support/Arbor/repos.json`)
    b. Implement `GitHubService` using Octokit with methods:
-      i. `listOpenPRs(owner, repo)` → returns PR cards with number, title, author, headBranch, createdAt, ciStatus, reviewStatus
-      ii. `getPRDetails(owner, repo, number)` → full PR body and diff stat for CLAUDE.md generation
+   i. `listOpenPRs(owner, repo)` → returns PR cards with number, title, author, headBranch, createdAt, ciStatus, reviewStatus
+   ii. `getPRDetails(owner, repo, number)` → full PR body and diff stat for CLAUDE.md generation
    c. Implement refresh scheduler (configurable interval, default 5 min) using `setInterval` in main process
    d. Cache last-fetched PR list in memory; serve cached data on renderer request while background refresh runs
    e. Build PR List React component:
-      i. Repo selector in left sidebar
-      ii. PR cards in main panel: number badge, title, author avatar, age, CI badge (green/red/yellow), review badge
-      iii. "Start Review" button per card
-      iv. Manual refresh button with last-refreshed timestamp
+   i. Repo selector in left sidebar
+   ii. PR cards in main panel: number badge, title, author avatar, age, CI badge (green/red/yellow), review badge
+   iii. "Start Review" button per card
+   iv. Manual refresh button with last-refreshed timestamp
 4. **Acceptance Criteria**:
    a. PRs from a configured repo appear within 3 seconds of app load (from cache or API)
    b. CI and review status badges accurately reflect GitHub state
@@ -256,31 +256,30 @@ New bounded contexts added on top of T3 Code:
 2. **Description**: Core service that handles git worktree lifecycle — create, list, measure, remove — using `simple-git`
 3. **Implementation**:
    a. Implement `WorktreeService` with methods:
-      i. `create(repoLocalPath, prBranch, prNumber)` → creates worktree at `{basePath}/{repoName}/pr-{number}-{branchSlug}`
-      ii. `list()` → returns all tracked worktrees with metadata
-      iii. `remove(worktreePath)` → runs `git worktree remove` and deletes directory
-      iv. `getDiskSize(worktreePath)` → returns size in MB
+   i. `create(repoLocalPath, prBranch, prNumber)` → creates worktree at `{basePath}/{repoName}/pr-{number}-{branchSlug}`
+   ii. `list()` → returns all tracked worktrees with metadata
+   iii. `remove(worktreePath)` → runs `git worktree remove` and deletes directory
+   iv. `getDiskSize(worktreePath)` → returns size in MB
    b. Persist active worktree registry to `~/Library/Application Support/Arbor/worktrees.json` with fields:
 
-| Field        | Type              | Description                              |
-| ------------ | ----------------- | ---------------------------------------- |
-| id           | string / uuid     | Unique session identifier                |
-| repo_slug    | string            | owner/repo                              |
-| pr_number    | number            | GitHub PR number                         |
-| pr_title     | string            | PR title at time of creation             |
-| branch_name  | string            | Head branch name                         |
-| worktree_path| string            | Absolute path on disk                    |
-| created_at   | ISO 8601 datetime | When worktree was created                |
-| last_active  | ISO 8601 datetime | Last time session was opened             |
+| Field         | Type              | Description                  |
+| ------------- | ----------------- | ---------------------------- |
+| id            | string / uuid     | Unique session identifier    |
+| repo_slug     | string            | owner/repo                   |
+| pr_number     | number            | GitHub PR number             |
+| pr_title      | string            | PR title at time of creation |
+| branch_name   | string            | Head branch name             |
+| worktree_path | string            | Absolute path on disk        |
+| created_at    | ISO 8601 datetime | When worktree was created    |
+| last_active   | ISO 8601 datetime | Last time session was opened |
 
-   c. On create: fetch branch from origin before `git worktree add` to ensure it's current
-   d. Check for existing worktree for same PR before creating; return existing if found
-   e. Expose IPC handlers: `worktree:create`, `worktree:list`, `worktree:remove`, `worktree:getDiskSize`
-4. **Acceptance Criteria**:
-   a. Worktree created at correct path with correct branch checked out
-   b. Re-selecting an already-open PR returns the existing session, not a new worktree
-   c. Removed worktrees are deleted from disk and from the registry
-   d. Disk size is displayed in the session list within 1 second of opening the list
+c. On create: fetch branch from origin before `git worktree add` to ensure it's current
+d. Check for existing worktree for same PR before creating; return existing if found
+e. Expose IPC handlers: `worktree:create`, `worktree:list`, `worktree:remove`, `worktree:getDiskSize` 4. **Acceptance Criteria**:
+a. Worktree created at correct path with correct branch checked out
+b. Re-selecting an already-open PR returns the existing session, not a new worktree
+c. Removed worktrees are deleted from disk and from the registry
+d. Disk size is displayed in the session list within 1 second of opening the list
 
 #### 5. [UI] Session List and Session Switcher
 
@@ -306,24 +305,29 @@ New bounded contexts added on top of T3 Code:
 2. **Description**: Detects presence of CLAUDE.md in a worktree; if absent, runs `claude /init` to generate a repo-aware context file, then prepends a PR-specific header block
 3. **Implementation**:
    a. Implement `ReviewContextService` with methods:
-      i. `detect(worktreePath)` → returns `{ exists: boolean, path: string | null }`
-      ii. `runInit(worktreePath)` → shells out to `claude /init` in the worktree directory; returns path to generated file
-      iii. `prependPRHeader(filePath, prDetails, diffStat)` → reads file, prepends header block, writes back
-      iv. `writePRHeaderOnly(worktreePath, prDetails, diffStat)` → used when /init is skipped; writes a minimal CLAUDE.md with only the PR header
+   i. `detect(worktreePath)` → returns `{ exists: boolean, path: string | null }`
+   ii. `runInit(worktreePath)` → shells out to `claude /init` in the worktree directory; returns path to generated file
+   iii. `prependPRHeader(filePath, prDetails, diffStat)` → reads file, prepends header block, writes back
+   iv. `writePRHeaderOnly(worktreePath, prDetails, diffStat)` → used when /init is skipped; writes a minimal CLAUDE.md with only the PR header
    b. PR header block format prepended to top of file:
-      ```markdown
-      <!-- Arbor Review Context — do not commit -->
-      # PR Review Session: #{number} — {title}
-      **Author**: {author} | **Branch**: {branch} → {base} | **Review started**: {date}
 
-      ## What Changed
-      {git diff --stat output}
-      ---
-      ```
+   ```markdown
+   <!-- Arbor Review Context — do not commit -->
+
+   # PR Review Session: #{number} — {title}
+
+   **Author**: {author} | **Branch**: {branch} → {base} | **Review started**: {date}
+
+   ## What Changed
+
+   ## {git diff --stat output}
+   ```
+
    c. Detection runs immediately after worktree creation, before session launch
    d. If `detect` returns `exists: true`: show non-blocking notice "Using existing CLAUDE.md" — no modification
    e. If `detect` returns `exists: false` and init setting is enabled: run `claude /init`, then prepend PR header
    f. If init setting is disabled: write PR header only via `writePRHeaderOnly`
+
 4. **Acceptance Criteria**:
    a. Existing CLAUDE.md in repo is never modified or overwritten
    b. Generated file contains `claude /init` repo context with PR header block at the top
@@ -355,11 +359,11 @@ New bounded contexts added on top of T3 Code:
 2. **Description**: Wire all pieces into a single "Start Review" action that goes from PR card click to active Claude Code session
 3. **Implementation**:
    a. "Start Review" button triggers this sequence:
-      i. Check for existing worktree → if found, skip to step iv
-      ii. Create worktree (`WorktreeService.create`)
-      iii. Run CLAUDE.md detection + optional scaffolding (`ReviewContextService`)
-      iv. Launch Claude Code session via T3 Code session infrastructure, rooted at worktree path
-      v. Switch UI to Session View for the new/existing session
+   i. Check for existing worktree → if found, skip to step iv
+   ii. Create worktree (`WorktreeService.create`)
+   iii. Run CLAUDE.md detection + optional scaffolding (`ReviewContextService`)
+   iv. Launch Claude Code session via T3 Code session infrastructure, rooted at worktree path
+   v. Switch UI to Session View for the new/existing session
    b. Show progress indicator during worktree creation with step labels: "Fetching branch…", "Creating worktree…", "Setting up context…", "Starting Claude Code…"
    c. If Claude Code CLI health check fails at launch time, show inline error with link to installation docs rather than a broken session view
    d. Session View header must show: PR number, title, branch name, worktree path (copyable), and a "Close Session" button
@@ -378,11 +382,11 @@ New bounded contexts added on top of T3 Code:
 2. **Description**: Unified settings screen for all configurable behaviors
 3. **Implementation**:
    a. Sections:
-      i. **GitHub**: connected account display, disconnect button, re-authenticate button
-      ii. **Repositories**: list of tracked repos with add (text input for slug) and remove (×) controls
-      iii. **Worktrees**: base path picker, cleanup behavior toggle (prompt / manual only)
-      iv. **Review Context**: CLAUDE.md behavior selector (always offer / always generate / never)
-      v. **PR List**: refresh interval selector
+   i. **GitHub**: connected account display, disconnect button, re-authenticate button
+   ii. **Repositories**: list of tracked repos with add (text input for slug) and remove (×) controls
+   iii. **Worktrees**: base path picker, cleanup behavior toggle (prompt / manual only)
+   iv. **Review Context**: CLAUDE.md behavior selector (always offer / always generate / never)
+   v. **PR List**: refresh interval selector
    b. All settings persist to `~/Library/Application Support/Arbor/settings.json`
    c. Changes take effect immediately without restart (except base path, which applies to new worktrees only)
 4. **Acceptance Criteria**:
@@ -397,14 +401,14 @@ New bounded contexts added on top of T3 Code:
 2. **Description**: On every app launch, verify that required host dependencies are present and functional
 3. **Implementation**:
    a. Check sequence on startup:
-      i. `git --version` → verify git is in PATH
-      ii. `claude --version` (or equivalent Claude Code CLI check) → verify CLI installed
-      iii. GitHub token validation via `GET /user` → verify token present and valid
+   i. `git --version` → verify git is in PATH
+   ii. `claude --version` (or equivalent Claude Code CLI check) → verify CLI installed
+   iii. GitHub token validation via `GET /user` → verify token present and valid
    b. Results displayed as a status strip at the bottom of the app (green/yellow/red per dependency)
    c. Red status items show an inline "Fix this" link:
-      i. git not found → link to git installation docs
-      ii. Claude Code not found → link to Claude Code installation docs
-      iii. GitHub not authenticated → triggers OAuth flow
+   i. git not found → link to git installation docs
+   ii. Claude Code not found → link to Claude Code installation docs
+   iii. GitHub not authenticated → triggers OAuth flow
    d. App is fully usable even with yellow/red statuses except for the feature requiring the missing dependency
 4. **Acceptance Criteria**:
    a. All three checks run within 2 seconds of app launch
