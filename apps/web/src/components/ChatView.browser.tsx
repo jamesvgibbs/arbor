@@ -3,6 +3,8 @@ import "../index.css";
 
 import {
   ORCHESTRATION_WS_METHODS,
+  GITHUB_WS_METHODS,
+  WORKTREE_WS_METHODS,
   type MessageId,
   type OrchestrationReadModel,
   type ProjectId,
@@ -398,6 +400,20 @@ function resolveWsRpc(body: WsRequestEnvelope["body"]): unknown {
     return {
       entries: [],
       truncated: false,
+    };
+  }
+  if (tag === GITHUB_WS_METHODS.listRepos) {
+    return [];
+  }
+  if (tag === WORKTREE_WS_METHODS.list) {
+    return { sessions: [] };
+  }
+  if (tag === WORKTREE_WS_METHODS.healthCheck) {
+    return {
+      git: { status: "ok", version: "2.50.0" },
+      claudeCode: { status: "not_configured", version: null },
+      github: { status: "not_configured", username: null },
+      ide: { status: "not_configured", name: null },
     };
   }
   if (tag === WS_METHODS.terminalOpen) {

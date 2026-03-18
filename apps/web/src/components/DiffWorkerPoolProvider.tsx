@@ -1,6 +1,6 @@
 import { WorkerPoolContextProvider, useWorkerPool } from "@pierre/diffs/react";
 import DiffsWorker from "@pierre/diffs/worker/worker.js?worker";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { Component, useEffect, useMemo, type ReactNode } from "react";
 import { useTheme } from "../hooks/useTheme";
 import { resolveDiffThemeName, type DiffThemeName } from "../lib/diffRendering";
 
@@ -28,6 +28,37 @@ function DiffWorkerThemeSync({ themeName }: { themeName: DiffThemeName }) {
   return null;
 }
 
+/**
+ * Error boundary that catches WorkerPoolContextProvider failures and renders
+ * children without the worker pool. This prevents the React tree from crashing
+ * when web workers are unavailable (e.g. in browser test environments where
+ * Vite's ?worker transform doesn't produce valid worker script URLs).
+ */
+class WorkerPoolErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; fallback: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  override componentDidCatch() {
+    // Silently degrade — diffs will render without syntax highlighting.
+  }
+
+  override render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
 export function DiffWorkerPoolProvider({ children }: { children?: ReactNode }) {
   const { resolvedTheme } = useTheme();
   const diffThemeName = resolveDiffThemeName(resolvedTheme);
@@ -38,19 +69,21 @@ export function DiffWorkerPoolProvider({ children }: { children?: ReactNode }) {
   }, []);
 
   return (
-    <WorkerPoolContextProvider
-      poolOptions={{
-        workerFactory: () => new DiffsWorker(),
-        poolSize: workerPoolSize,
-        totalASTLRUCacheSize: 240,
-      }}
-      highlighterOptions={{
-        theme: diffThemeName,
-        tokenizeMaxLineLength: 1_000,
-      }}
-    >
-      <DiffWorkerThemeSync themeName={diffThemeName} />
-      {children}
-    </WorkerPoolContextProvider>
+    <WorkerPoolErrorBoundary fallback={<>{children}</>}>
+      <WorkerPoolContextProvider
+        poolOptions={{
+          workerFactory: () => new DiffsWorker(),
+          poolSize: workerPoolSize,
+          totalASTLRUCacheSize: 240,
+        }}
+        highlighterOptions={{
+          theme: diffThemeName,
+          tokenizeMaxLineLength: 1_000,
+        }}
+      >
+        <DiffWorkerThemeSync themeName={diffThemeName} />
+        {children}
+      </WorkerPoolContextProvider>
+    </WorkerPoolErrorBoundary>
   );
 }
