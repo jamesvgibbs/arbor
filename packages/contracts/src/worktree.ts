@@ -95,7 +95,12 @@ export const WorktreeCheckLifecycleInput = Schema.Struct({
       repoSlug: Schema.String,
       prNumber: Schema.Number,
       state: Schema.Literals(["open", "merged", "closed"]),
-      reviewStatus: Schema.Literals(["approved", "changes_requested", "review_required", "unknown"]),
+      reviewStatus: Schema.Literals([
+        "approved",
+        "changes_requested",
+        "review_required",
+        "unknown",
+      ]),
     }),
   ),
 });

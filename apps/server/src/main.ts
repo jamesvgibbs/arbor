@@ -99,10 +99,7 @@ const CliEnvConfig = Config.all({
   ),
   port: Config.port("ARBOR_PORT").pipe(Config.option, Config.map(Option.getOrUndefined)),
   host: Config.string("ARBOR_HOST").pipe(Config.option, Config.map(Option.getOrUndefined)),
-  stateDir: Config.string("ARBOR_STATE_DIR").pipe(
-    Config.option,
-    Config.map(Option.getOrUndefined),
-  ),
+  stateDir: Config.string("ARBOR_STATE_DIR").pipe(Config.option, Config.map(Option.getOrUndefined)),
   devUrl: Config.url("VITE_DEV_SERVER_URL").pipe(Config.option, Config.map(Option.getOrUndefined)),
   noBrowser: Config.boolean("ARBOR_NO_BROWSER").pipe(
     Config.option,

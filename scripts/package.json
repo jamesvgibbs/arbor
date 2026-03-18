@@ -8,9 +8,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-node": "catalog:",
     "@arbortools/contracts": "workspace:*",
     "@arbortools/shared": "workspace:*",
+    "@effect/platform-node": "catalog:",
     "effect": "catalog:"
   },
   "devDependencies": {

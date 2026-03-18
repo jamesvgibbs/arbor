@@ -37,16 +37,12 @@ export function GitHubCommentDisplay({
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
-            <span className="text-[11px] font-medium text-foreground">
-              {c.author}
-            </span>
+            <span className="text-[11px] font-medium text-foreground">{c.author}</span>
             <span className="text-[10px] text-muted-foreground/50">
               {formatRelativeTime(c.createdAt)}
             </span>
           </div>
-          <p className="mt-1 whitespace-pre-wrap text-xs text-foreground/90">
-            {c.body}
-          </p>
+          <p className="mt-1 whitespace-pre-wrap text-xs text-foreground/90">{c.body}</p>
         </div>
       ))}
     </div>

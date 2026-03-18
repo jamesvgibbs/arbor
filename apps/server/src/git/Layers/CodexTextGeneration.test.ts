@@ -99,7 +99,9 @@ function withFakeCodexEnv<A, E, R>(
 
       yield* Effect.sync(() => {
         process.env.PATH = `${binDir}:${previousPath ?? ""}`;
-        process.env.ARBOR_FAKE_CODEX_OUTPUT_B64 = Buffer.from(input.output, "utf8").toString("base64");
+        process.env.ARBOR_FAKE_CODEX_OUTPUT_B64 = Buffer.from(input.output, "utf8").toString(
+          "base64",
+        );
 
         if (input.exitCode !== undefined) {
           process.env.ARBOR_FAKE_CODEX_EXIT_CODE = String(input.exitCode);
@@ -180,7 +182,8 @@ function withFakeCodexEnv<A, E, R>(
         if (previous.previousStdinMustNotContain === undefined) {
           delete process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN;
         } else {
-          process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN = previous.previousStdinMustNotContain;
+          process.env.ARBOR_FAKE_CODEX_STDIN_MUST_NOT_CONTAIN =
+            previous.previousStdinMustNotContain;
         }
       }),
   );

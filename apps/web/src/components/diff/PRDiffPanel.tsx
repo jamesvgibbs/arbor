@@ -117,10 +117,7 @@ export function PRDiffPanel({
     }
     if (!diff || diff.trim().length === 0) return [];
     try {
-      const parsed = parsePatchFiles(
-        diff,
-        buildPatchCacheKey(diff, `pr-diff:${resolvedTheme}`),
-      );
+      const parsed = parsePatchFiles(diff, buildPatchCacheKey(diff, `pr-diff:${resolvedTheme}`));
       return parsed.flatMap((p) => p.files);
     } catch {
       return [];
@@ -209,10 +206,7 @@ export function PRDiffPanel({
       if (annotation.metadata.type === "pending" && annotation.metadata.comment) {
         const comment = annotation.metadata.comment;
         return (
-          <PendingCommentDisplay
-            comment={comment}
-            onRemove={() => onRemoveComment?.(comment.id)}
-          />
+          <PendingCommentDisplay comment={comment} onRemove={() => onRemoveComment?.(comment.id)} />
         );
       }
 
@@ -279,9 +273,7 @@ export function PRDiffPanel({
         )}
         {!isLoading && !error && renderableFiles.length === 0 && diff !== undefined && (
           <div className="flex h-full items-center justify-center text-xs text-muted-foreground/70">
-            {diff.trim().length === 0
-              ? "No changes in this file."
-              : "Unable to render diff."}
+            {diff.trim().length === 0 ? "No changes in this file." : "Unable to render diff."}
           </div>
         )}
         {!isLoading && renderableFiles.length > 0 && (
@@ -292,7 +284,10 @@ export function PRDiffPanel({
             {renderableFiles.map((fileDiff) => {
               const key = fileDiff.cacheKey ?? `${fileDiff.prevName ?? "none"}:${fileDiff.name}`;
               return (
-                <div key={`${key}:${resolvedTheme}`} className="mb-2 rounded-md first:mt-2 last:mb-0">
+                <div
+                  key={`${key}:${resolvedTheme}`}
+                  className="mb-2 rounded-md first:mt-2 last:mb-0"
+                >
                   <FileDiff<CommentAnnotationMetadata>
                     fileDiff={fileDiff}
                     lineAnnotations={lineAnnotations}
@@ -307,9 +302,7 @@ export function PRDiffPanel({
                       enableGutterUtility: true,
                       enableLineSelection: true,
                       onGutterUtilityClick: handleGutterUtilityClick,
-                      ...(fileDiff.isPartial === false
-                        ? { expansionLineCount: 20 }
-                        : {}),
+                      ...(fileDiff.isPartial === false ? { expansionLineCount: 20 } : {}),
                     }}
                   />
                 </div>
@@ -333,13 +326,10 @@ function InlineCommentForm({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-focus the textarea
-  const setRef = useCallback(
-    (el: HTMLTextAreaElement | null) => {
-      (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
-      if (el) el.focus();
-    },
-    [],
-  );
+  const setRef = useCallback((el: HTMLTextAreaElement | null) => {
+    (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+    if (el) el.focus();
+  }, []);
 
   return (
     <div className="border-t border-b border-border bg-card px-3 py-2.5">

@@ -25,11 +25,7 @@ import { newThreadId } from "../lib/utils";
 import { useInlineComments } from "../hooks/useInlineComments";
 import { useGitHubComments } from "../hooks/useGitHubComments";
 import { SidebarInset, SidebarTrigger } from "~/components/ui/sidebar";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "~/components/ui/resizable";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "~/components/ui/resizable";
 
 function ReviewRouteView() {
   const navigate = useNavigate();
@@ -39,19 +35,12 @@ function ReviewRouteView() {
 
   const projects = useStore((store) => store.projects);
   const threads = useStore((store) => store.threads);
-  const project = useMemo(
-    () => projects.find((p) => p.id === projectId),
-    [projects, projectId],
-  );
+  const project = useMemo(() => projects.find((p) => p.id === projectId), [projects, projectId]);
 
   const worktreeListQuery = useQuery(worktreeListQueryOptions());
   const matchingSession: WorktreeSessionWithSize | null = useMemo(() => {
     if (!project || !worktreeListQuery.data) return null;
-    return (
-      worktreeListQuery.data.sessions.find(
-        (s) => s.worktreePath === project.cwd,
-      ) ?? null
-    );
+    return worktreeListQuery.data.sessions.find((s) => s.worktreePath === project.cwd) ?? null;
   }, [project, worktreeListQuery.data]);
 
   // Redirect if no project or no matching session
@@ -70,14 +59,8 @@ function ReviewRouteView() {
 
     // Find existing thread with matching worktreePath
     const existingThread = threads
-      .filter(
-        (t) =>
-          t.projectId === projectId && t.worktreePath === project.cwd,
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )[0];
+      .filter((t) => t.projectId === projectId && t.worktreePath === project.cwd)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
     if (existingThread) {
       setThreadId(existingThread.id);
@@ -120,10 +103,11 @@ function ReviewRouteView() {
     toGitHubComments,
   } = useInlineComments(`${owner}/${repo}#${matchingSession?.prNumber ?? 0}`);
 
-  const {
-    comments: githubReviewComments,
-    refetch: refetchGitHubComments,
-  } = useGitHubComments(owner, repo, matchingSession?.prNumber ?? 0);
+  const { comments: githubReviewComments, refetch: refetchGitHubComments } = useGitHubComments(
+    owner,
+    repo,
+    matchingSession?.prNumber ?? 0,
+  );
 
   const handleApprove = useCallback(() => {
     if (!matchingSession) return;
@@ -148,7 +132,16 @@ function ReviewRouteView() {
         console.error("[review] approve failed:", err);
       },
     });
-  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll, refetchGitHubComments]);
+  }, [
+    owner,
+    repo,
+    matchingSession,
+    reviewComment,
+    submitReviewMutation,
+    toGitHubComments,
+    clearAll,
+    refetchGitHubComments,
+  ]);
 
   const handleComment = useCallback(() => {
     if (!matchingSession) return;
@@ -174,7 +167,16 @@ function ReviewRouteView() {
         console.error("[review] comment failed:", err);
       },
     });
-  }, [owner, repo, matchingSession, reviewComment, submitReviewMutation, toGitHubComments, clearAll, refetchGitHubComments]);
+  }, [
+    owner,
+    repo,
+    matchingSession,
+    reviewComment,
+    submitReviewMutation,
+    toGitHubComments,
+    clearAll,
+    refetchGitHubComments,
+  ]);
 
   if (!project || !matchingSession || !threadId) {
     return null;
@@ -256,7 +258,10 @@ function ReviewRouteView() {
                 <button
                   type="button"
                   onClick={handleComment}
-                  disabled={(!reviewComment.trim() && pendingComments.length === 0) || submitReviewMutation.isPending}
+                  disabled={
+                    (!reviewComment.trim() && pendingComments.length === 0) ||
+                    submitReviewMutation.isPending
+                  }
                   className="rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
                 >
                   Submit

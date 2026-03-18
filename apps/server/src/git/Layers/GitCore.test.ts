@@ -901,9 +901,7 @@ it.layer(TestLayer)("git integration", (it) => {
 
         expect(renamed.branch).toBe("arbor/feat/session-1");
         const branches = yield* listGitBranches({ cwd: tmp });
-        expect(branches.branches.some((branch) => branch.name === "arbor/feat/session")).toBe(
-          true,
-        );
+        expect(branches.branches.some((branch) => branch.name === "arbor/feat/session")).toBe(true);
         expect(branches.branches.some((branch) => branch.name === "arbor/feat/session-1")).toBe(
           true,
         );

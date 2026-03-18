@@ -92,7 +92,9 @@ export function worktreeUpdateSettingsMutationOptions(input: { queryClient: Quer
 export function worktreeCheckLifecycleMutationOptions(input: { queryClient: QueryClient }) {
   return mutationOptions({
     mutationKey: ["worktree", "checkLifecycle"] as const,
-    mutationFn: async (params: WorktreeCheckLifecycleInput): Promise<WorktreeCheckLifecycleResult> => {
+    mutationFn: async (
+      params: WorktreeCheckLifecycleInput,
+    ): Promise<WorktreeCheckLifecycleResult> => {
       const api = ensureNativeApi();
       return api.worktree.checkLifecycle(params);
     },

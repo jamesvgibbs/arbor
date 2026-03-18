@@ -8,13 +8,13 @@ The Arbor CLI accepts the following configuration options, available either as C
 
 | CLI flag                | Env var               | Notes                              |
 | ----------------------- | --------------------- | ---------------------------------- |
-| `--mode <web\|desktop>` | `ARBOR_MODE`         | Runtime mode.                      |
-| `--port <number>`       | `ARBOR_PORT`         | HTTP/WebSocket port.               |
-| `--host <address>`      | `ARBOR_HOST`         | Bind interface/address.            |
-| `--state-dir <path>`    | `ARBOR_STATE_DIR`    | State directory.                   |
+| `--mode <web\|desktop>` | `ARBOR_MODE`          | Runtime mode.                      |
+| `--port <number>`       | `ARBOR_PORT`          | HTTP/WebSocket port.               |
+| `--host <address>`      | `ARBOR_HOST`          | Bind interface/address.            |
+| `--state-dir <path>`    | `ARBOR_STATE_DIR`     | State directory.                   |
 | `--dev-url <url>`       | `VITE_DEV_SERVER_URL` | Dev web URL redirect/proxy target. |
-| `--no-browser`          | `ARBOR_NO_BROWSER`   | Disable auto-open browser.         |
-| `--auth-token <token>`  | `ARBOR_AUTH_TOKEN`   | WebSocket auth token.              |
+| `--no-browser`          | `ARBOR_NO_BROWSER`    | Disable auto-open browser.         |
+| `--auth-token <token>`  | `ARBOR_AUTH_TOKEN`    | WebSocket auth token.              |
 
 > TIP: Use the `--help` flag to see all available options and their descriptions.
 

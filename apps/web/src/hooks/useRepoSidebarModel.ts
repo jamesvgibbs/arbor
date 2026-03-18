@@ -67,9 +67,7 @@ export function useRepoSidebarModel() {
   const projects = useStore((store) => store.projects);
   const threads = useStore((store) => store.threads);
   const collapsedRepoSlugs = useStore((store) => store.collapsedRepoSlugs);
-  const draftThreadsByThreadId = useComposerDraftStore(
-    (store) => store.draftThreadsByThreadId,
-  );
+  const draftThreadsByThreadId = useComposerDraftStore((store) => store.draftThreadsByThreadId);
   const projectDraftThreadIdByProjectId = useComposerDraftStore(
     (store) => store.projectDraftThreadIdByProjectId,
   );
@@ -81,9 +79,7 @@ export function useRepoSidebarModel() {
 
   const model = useMemo(() => {
     // Build worktree session lookup by worktree path
-    const sessionByPath = new Map(
-      worktreeSessions.map((s) => [s.worktreePath, s] as const),
-    );
+    const sessionByPath = new Map(worktreeSessions.map((s) => [s.worktreePath, s] as const));
 
     // Group projects by repoSlug (with auto-derivation for legacy projects)
     const groupMap = new Map<string, SidebarItem[]>();
@@ -103,9 +99,8 @@ export function useRepoSidebarModel() {
       // (e.g. newly created thought exercises before the first message is sent)
       if (projectThreads.length === 0) {
         const draftThreadId = projectDraftThreadIdByProjectId[project.id];
-        const draftState = draftThreadId != null
-          ? draftThreadsByThreadId[draftThreadId]
-          : undefined;
+        const draftState =
+          draftThreadId != null ? draftThreadsByThreadId[draftThreadId] : undefined;
         if (draftThreadId != null && draftState) {
           const syntheticThread: Thread = {
             id: draftThreadId,
@@ -135,9 +130,7 @@ export function useRepoSidebarModel() {
       const latestThread = projectThreads[0]!;
 
       // Determine kind
-      const kind: SidebarItemKind = isThoughtBranch(latestThread.branch)
-        ? "thought"
-        : "pr-review";
+      const kind: SidebarItemKind = isThoughtBranch(latestThread.branch) ? "thought" : "pr-review";
 
       // Look up worktree session for PR metadata
       const worktreeSession = latestThread.worktreePath
@@ -147,7 +140,8 @@ export function useRepoSidebarModel() {
       // Determine lastActivityAt: latest of thread createdAt, session lastActive, or latest turn
       const candidates = [latestThread.createdAt];
       if (worktreeSession?.lastActive) candidates.push(worktreeSession.lastActive);
-      if (latestThread.latestTurn?.completedAt) candidates.push(latestThread.latestTurn.completedAt);
+      if (latestThread.latestTurn?.completedAt)
+        candidates.push(latestThread.latestTurn.completedAt);
       const lastActivityAt = candidates.toSorted().at(-1) ?? latestThread.createdAt;
 
       // Derive status — all items should have a status pill
@@ -222,7 +216,15 @@ export function useRepoSidebarModel() {
       hasAnyRepos: trackedRepos.length > 0 || repoGroups.length > 0,
       pendingSlugUpdates,
     };
-  }, [projects, threads, worktreeSessions, trackedRepos, collapsedRepoSlugs, draftThreadsByThreadId, projectDraftThreadIdByProjectId]);
+  }, [
+    projects,
+    threads,
+    worktreeSessions,
+    trackedRepos,
+    collapsedRepoSlugs,
+    draftThreadsByThreadId,
+    projectDraftThreadIdByProjectId,
+  ]);
 
   // Persist derived repoSlugs back to the server (one-time migration per project)
   const migratedRef = useRef(new Set<string>());

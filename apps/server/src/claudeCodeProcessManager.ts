@@ -91,11 +91,7 @@ export class ClaudeCodeProcessManager extends EventEmitter<ClaudeCodeProcessMana
     });
   }
 
-  private emitErrorEvent(
-    context: ClaudeCodeSessionContext,
-    method: string,
-    message: string,
-  ): void {
+  private emitErrorEvent(context: ClaudeCodeSessionContext, method: string, message: string): void {
     this.emitEvent({
       id: EventId.makeUnsafe(randomUUID()),
       kind: "error",
@@ -107,10 +103,7 @@ export class ClaudeCodeProcessManager extends EventEmitter<ClaudeCodeProcessMana
     });
   }
 
-  private updateSession(
-    context: ClaudeCodeSessionContext,
-    patch: Partial<ProviderSession>,
-  ): void {
+  private updateSession(context: ClaudeCodeSessionContext, patch: Partial<ProviderSession>): void {
     Object.assign(context.session, patch, { updatedAt: new Date().toISOString() });
   }
 
@@ -158,7 +151,11 @@ export class ClaudeCodeProcessManager extends EventEmitter<ClaudeCodeProcessMana
     this.emitLifecycleEvent(context, "session/connecting", "Starting Claude Code session");
 
     this.updateSession(context, { status: "ready" });
-    this.emitLifecycleEvent(context, "session/ready", `Claude Code session ready (${claudeSessionId})`);
+    this.emitLifecycleEvent(
+      context,
+      "session/ready",
+      `Claude Code session ready (${claudeSessionId})`,
+    );
 
     return { ...context.session };
   }
@@ -177,9 +174,11 @@ export class ClaudeCodeProcessManager extends EventEmitter<ClaudeCodeProcessMana
 
     const args = [
       "-p",
-      "--output-format", "stream-json",
+      "--output-format",
+      "stream-json",
       "--verbose",
-      "--session-id", context.claudeSessionId!,
+      "--session-id",
+      context.claudeSessionId!,
     ];
 
     if (model) {

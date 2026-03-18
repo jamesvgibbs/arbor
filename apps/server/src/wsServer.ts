@@ -908,40 +908,46 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
       case GITHUB_WS_METHODS.getAuthStatus:
         return yield* Effect.tryPromise({
           try: () => githubManager.getAuthStatus(),
-          catch: (cause) => new RouteRequestError({ message: `GitHub auth check failed: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `GitHub auth check failed: ${String(cause)}` }),
         });
 
       case GITHUB_WS_METHODS.startAuth:
         return yield* Effect.tryPromise({
           try: () => githubManager.startAuth(),
-          catch: (cause) => new RouteRequestError({ message: `GitHub auth start failed: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `GitHub auth start failed: ${String(cause)}` }),
         });
 
       case GITHUB_WS_METHODS.pollAuth: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => githubManager.pollAuth(body.deviceCode, body.interval),
-          catch: (cause) => new RouteRequestError({ message: `GitHub auth poll failed: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `GitHub auth poll failed: ${String(cause)}` }),
         });
       }
 
       case GITHUB_WS_METHODS.logout:
         return yield* Effect.tryPromise({
           try: () => githubManager.logout(),
-          catch: (cause) => new RouteRequestError({ message: `GitHub logout failed: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `GitHub logout failed: ${String(cause)}` }),
         });
 
       case GITHUB_WS_METHODS.listRepos:
         return yield* Effect.tryPromise({
           try: () => githubManager.listRepos(),
-          catch: (cause) => new RouteRequestError({ message: `Failed to list repos: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to list repos: ${String(cause)}` }),
         });
 
       case GITHUB_WS_METHODS.addRepo: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => githubManager.addRepo(body.owner, body.repo),
-          catch: (cause) => new RouteRequestError({ message: `Failed to add repo: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to add repo: ${String(cause)}` }),
         });
       }
 
@@ -949,7 +955,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => githubManager.removeRepo(body.owner, body.repo),
-          catch: (cause) => new RouteRequestError({ message: `Failed to remove repo: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to remove repo: ${String(cause)}` }),
         });
       }
 
@@ -957,7 +964,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => githubManager.listPRs(body.owner, body.repo),
-          catch: (cause) => new RouteRequestError({ message: `Failed to list PRs: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to list PRs: ${String(cause)}` }),
         });
       }
 
@@ -965,7 +973,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => githubManager.getPRDetails(body.owner, body.repo, body.number),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get PR details: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get PR details: ${String(cause)}` }),
         });
       }
 
@@ -973,13 +982,24 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => githubManager.refreshPRs(body.owner, body.repo),
-          catch: (cause) => new RouteRequestError({ message: `Failed to refresh PRs: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to refresh PRs: ${String(cause)}` }),
         });
       }
 
       case GITHUB_WS_METHODS.submitReview: {
         const body = stripRequestTag(request.body);
-        console.log("[ws] submitReview body:", JSON.stringify({ owner: body.owner, repo: body.repo, prNumber: body.prNumber, event: body.event, hasComments: !!body.comments, commentCount: body.comments?.length }));
+        console.log(
+          "[ws] submitReview body:",
+          JSON.stringify({
+            owner: body.owner,
+            repo: body.repo,
+            prNumber: body.prNumber,
+            event: body.event,
+            hasComments: !!body.comments,
+            commentCount: body.comments?.length,
+          }),
+        );
         return yield* Effect.tryPromise({
           try: () => {
             const mappedComments = body.comments?.map((c: any) => ({
@@ -991,7 +1011,14 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
               ...(c.startSide != null ? { start_side: c.startSide } : {}),
             }));
             console.log("[ws] submitReview mappedComments:", JSON.stringify(mappedComments));
-            return githubManager.submitReview(body.owner, body.repo, body.prNumber, body.body, body.event as "APPROVE" | "COMMENT" | "REQUEST_CHANGES", mappedComments);
+            return githubManager.submitReview(
+              body.owner,
+              body.repo,
+              body.prNumber,
+              body.body,
+              body.event as "APPROVE" | "COMMENT" | "REQUEST_CHANGES",
+              mappedComments,
+            );
           },
           catch: (cause) => {
             console.error("[ws] submitReview error:", cause);
@@ -1004,7 +1031,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => githubManager.listReviewComments(body.owner, body.repo, body.prNumber),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get review comments: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get review comments: ${String(cause)}` }),
         });
       }
 
@@ -1013,21 +1041,24 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.create(body),
-          catch: (cause) => new RouteRequestError({ message: `Failed to create worktree: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to create worktree: ${String(cause)}` }),
         });
       }
 
       case WORKTREE_WS_METHODS.list:
         return yield* Effect.tryPromise({
           try: () => worktreeManager.list(),
-          catch: (cause) => new RouteRequestError({ message: `Failed to list worktrees: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to list worktrees: ${String(cause)}` }),
         });
 
       case WORKTREE_WS_METHODS.remove: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.remove(body.sessionId),
-          catch: (cause) => new RouteRequestError({ message: `Failed to remove worktree: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to remove worktree: ${String(cause)}` }),
         });
       }
 
@@ -1035,21 +1066,26 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.getDiskSize(body.sessionId),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get disk size: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get disk size: ${String(cause)}` }),
         });
       }
 
       case WORKTREE_WS_METHODS.getSettings:
         return yield* Effect.tryPromise({
           try: () => worktreeManager.getSettings(),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get worktree settings: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get worktree settings: ${String(cause)}` }),
         });
 
       case WORKTREE_WS_METHODS.updateSettings: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.updateSettings(body),
-          catch: (cause) => new RouteRequestError({ message: `Failed to update worktree settings: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({
+              message: `Failed to update worktree settings: ${String(cause)}`,
+            }),
         });
       }
 
@@ -1057,27 +1093,33 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.checkLifecycle([...body.prStatuses]),
-          catch: (cause) => new RouteRequestError({ message: `Failed to check worktree lifecycle: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({
+              message: `Failed to check worktree lifecycle: ${String(cause)}`,
+            }),
         });
       }
 
       case WORKTREE_WS_METHODS.detectIDEs:
         return yield* Effect.tryPromise({
           try: () => worktreeManager.detectIDEs(),
-          catch: (cause) => new RouteRequestError({ message: `Failed to detect IDEs: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to detect IDEs: ${String(cause)}` }),
         });
 
       case WORKTREE_WS_METHODS.getIDESettings:
         return yield* Effect.tryPromise({
           try: () => worktreeManager.getIDESettings(),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get IDE settings: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get IDE settings: ${String(cause)}` }),
         });
 
       case WORKTREE_WS_METHODS.updateIDESettings: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.updateIDESettings(body),
-          catch: (cause) => new RouteRequestError({ message: `Failed to update IDE settings: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to update IDE settings: ${String(cause)}` }),
         });
       }
 
@@ -1085,27 +1127,31 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.openInIDE(body.worktreePath, body.ide),
-          catch: (cause) => new RouteRequestError({ message: `Failed to open in IDE: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to open in IDE: ${String(cause)}` }),
         });
       }
 
       case WORKTREE_WS_METHODS.healthCheck:
         return yield* Effect.tryPromise({
           try: () => worktreeManager.healthCheck(),
-          catch: (cause) => new RouteRequestError({ message: `Health check failed: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Health check failed: ${String(cause)}` }),
         });
 
       case WORKTREE_WS_METHODS.getArborSettings:
         return yield* Effect.tryPromise({
           try: () => worktreeManager.getArborSettings(),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get Arbor settings: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get Arbor settings: ${String(cause)}` }),
         });
 
       case WORKTREE_WS_METHODS.updateArborSettings: {
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => worktreeManager.updateArborSettings(body),
-          catch: (cause) => new RouteRequestError({ message: `Failed to update Arbor settings: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to update Arbor settings: ${String(cause)}` }),
         });
       }
 
@@ -1114,7 +1160,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => reviewContextManager.detect(body.worktreePath),
-          catch: (cause) => new RouteRequestError({ message: `Failed to detect review context: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to detect review context: ${String(cause)}` }),
         });
       }
 
@@ -1122,7 +1169,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => reviewContextManager.init({ ...body, skipInit: body.skipInit ?? false }),
-          catch: (cause) => new RouteRequestError({ message: `Failed to init review context: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to init review context: ${String(cause)}` }),
         });
       }
 
@@ -1131,7 +1179,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => diffService.getChangedFiles(body.owner, body.repo, body.prNumber),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get changed files: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get changed files: ${String(cause)}` }),
         });
       }
 
@@ -1139,7 +1188,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => diffService.getLocalDiff(body.worktreePath, body.baseBranch, body.filename),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get local diff: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get local diff: ${String(cause)}` }),
         });
       }
 
@@ -1147,7 +1197,8 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
         const body = stripRequestTag(request.body);
         return yield* Effect.tryPromise({
           try: () => diffService.getFileContent(body.worktreePath, body.baseBranch, body.filename),
-          catch: (cause) => new RouteRequestError({ message: `Failed to get file content: ${String(cause)}` }),
+          catch: (cause) =>
+            new RouteRequestError({ message: `Failed to get file content: ${String(cause)}` }),
         });
       }
 
@@ -1181,7 +1232,9 @@ export const createServer = Effect.fn(function* (): Effect.fn.Return<
     try {
       const parsed = JSON.parse(messageText);
       if (typeof parsed?.id === "string") rawRequestId = parsed.id;
-    } catch { /* use "unknown" */ }
+    } catch {
+      /* use "unknown" */
+    }
 
     const request = decodeWebSocketRequest(messageText);
     if (Result.isFailure(request)) {

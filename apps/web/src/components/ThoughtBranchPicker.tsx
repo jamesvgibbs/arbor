@@ -5,13 +5,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 
 import { gitBranchesQueryOptions } from "../lib/gitReactQuery";
 import { dedupeRemoteBranchesWithLocalMatches } from "./BranchToolbar.logic";
-import {
-  Dialog,
-  DialogPopup,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "./ui/dialog";
+import { Dialog, DialogPopup, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import {
   Combobox,
   ComboboxEmpty,
@@ -139,9 +133,9 @@ export function ThoughtBranchPicker({
       const defaultBranch =
         branches.length > 0
           ? (branches.find((b) => b.isDefault) ??
-             branches.find((b) => b.name === "main") ??
-             branches.find((b) => b.name === "master") ??
-             branches.find((b) => b.current))
+            branches.find((b) => b.name === "main") ??
+            branches.find((b) => b.name === "master") ??
+            branches.find((b) => b.current))
           : undefined;
       setSelectedBranch(defaultBranch?.name ?? null);
     }
@@ -231,7 +225,9 @@ export function ThoughtBranchPicker({
                         key={repo.slug}
                         index={index}
                         value={repo.slug}
-                        className={repo.slug === selectedRepoSlug ? "bg-accent text-foreground" : undefined}
+                        className={
+                          repo.slug === selectedRepoSlug ? "bg-accent text-foreground" : undefined
+                        }
                         onClick={() => {
                           setSelectedRepoSlug(repo.slug);
                           setIsRepoMenuOpen(false);
@@ -292,10 +288,7 @@ export function ThoughtBranchPicker({
                 <ComboboxEmpty>No branches found.</ComboboxEmpty>
                 <ComboboxList ref={setListRef} className="max-h-56">
                   {shouldVirtualize ? (
-                    <div
-                      className="relative"
-                      style={{ height: `${virtualizer.getTotalSize()}px` }}
-                    >
+                    <div className="relative" style={{ height: `${virtualizer.getTotalSize()}px` }}>
                       {virtualRows.map((row) => {
                         const itemValue = filteredBranchNames[row.index];
                         if (!itemValue) return null;

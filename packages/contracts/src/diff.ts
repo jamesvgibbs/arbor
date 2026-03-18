@@ -4,7 +4,15 @@ import { Schema } from "effect";
 
 export const PRChangedFile = Schema.Struct({
   filename: Schema.String,
-  status: Schema.Literals(["added", "removed", "modified", "renamed", "copied", "changed", "unchanged"]),
+  status: Schema.Literals([
+    "added",
+    "removed",
+    "modified",
+    "renamed",
+    "copied",
+    "changed",
+    "unchanged",
+  ]),
   additions: Schema.Number,
   deletions: Schema.Number,
   previousFilename: Schema.optional(Schema.String),

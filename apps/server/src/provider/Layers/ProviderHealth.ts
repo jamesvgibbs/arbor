@@ -467,9 +467,7 @@ export const checkClaudeCodeProviderStatus: Effect.Effect<
     const error = versionProbe.failure;
     const lower = error instanceof Error ? error.message.toLowerCase() : "";
     const isMissing =
-      lower.includes("enoent") ||
-      lower.includes("notfound") ||
-      lower.includes("command not found");
+      lower.includes("enoent") || lower.includes("notfound") || lower.includes("command not found");
     return {
       provider: CLAUDE_CODE_PROVIDER,
       status: "error" as const,

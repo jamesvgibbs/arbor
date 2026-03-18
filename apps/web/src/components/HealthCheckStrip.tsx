@@ -61,11 +61,7 @@ function FixLink({
         </button>
       );
     case "ide":
-      return (
-        <span className="text-[10px] text-muted-foreground">
-          Set in Settings
-        </span>
-      );
+      return <span className="text-[10px] text-muted-foreground">Set in Settings</span>;
     default:
       return null;
   }
@@ -81,11 +77,7 @@ export function HealthCheckStrip() {
   const handleAuthClick = useCallback(() => {
     startAuthMutation.mutate(undefined, {
       onSuccess: (data) => {
-        if (
-          !pollingRef.current &&
-          data.status === "device_flow_started" &&
-          data.deviceFlow
-        ) {
+        if (!pollingRef.current && data.status === "device_flow_started" && data.deviceFlow) {
           pollingRef.current = true;
           pollAuthMutation.mutate(
             {
@@ -108,8 +100,18 @@ export function HealthCheckStrip() {
   const data = healthQuery.data;
   const checks = [
     { key: "git" as const, label: "Git", status: data.git.status, detail: data.git.version },
-    { key: "claudeCode" as const, label: "Claude Code", status: data.claudeCode.status, detail: data.claudeCode.version },
-    { key: "github" as const, label: "GitHub", status: data.github.status, detail: data.github.username },
+    {
+      key: "claudeCode" as const,
+      label: "Claude Code",
+      status: data.claudeCode.status,
+      detail: data.claudeCode.version,
+    },
+    {
+      key: "github" as const,
+      label: "GitHub",
+      status: data.github.status,
+      detail: data.github.username,
+    },
     { key: "ide" as const, label: "IDE", status: data.ide.status, detail: data.ide.name },
   ];
 

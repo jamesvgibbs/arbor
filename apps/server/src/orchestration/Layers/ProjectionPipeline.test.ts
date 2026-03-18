@@ -1483,7 +1483,9 @@ projectionLayer("OrchestrationProjectionPipeline", (it) => {
             threadId: ThreadId.makeUnsafe("thread-conflict"),
             turnId: TurnId.makeUnsafe("turn-completed"),
             checkpointTurnCount: 1,
-            checkpointRef: CheckpointRef.makeUnsafe("refs/arbor/checkpoints/thread-conflict/turn/1"),
+            checkpointRef: CheckpointRef.makeUnsafe(
+              "refs/arbor/checkpoints/thread-conflict/turn/1",
+            ),
             status: "ready",
             files: [],
             assistantMessageId: MessageId.makeUnsafe("assistant-conflict"),

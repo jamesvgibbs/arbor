@@ -31,11 +31,11 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@effect/language-service": "catalog:",
-    "@effect/vitest": "catalog:",
     "@arbortools/contracts": "workspace:*",
     "@arbortools/shared": "workspace:*",
     "@arbortools/web": "workspace:*",
+    "@effect/language-service": "catalog:",
+    "@effect/vitest": "catalog:",
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "@types/ws": "^8.5.13",

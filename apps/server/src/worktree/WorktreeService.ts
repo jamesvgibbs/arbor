@@ -37,11 +37,9 @@ export class WorktreeService {
       const { mkdirSync } = await import("node:fs");
       mkdirSync(path.dirname(bareDir), { recursive: true });
 
-      await execFileAsync(
-        "git",
-        ["clone", "--bare", repoUrl, bareDir],
-        { timeout: GIT_TIMEOUT_MS },
-      );
+      await execFileAsync("git", ["clone", "--bare", repoUrl, bareDir], {
+        timeout: GIT_TIMEOUT_MS,
+      });
       return bareDir;
     }
   }
@@ -56,11 +54,10 @@ export class WorktreeService {
     branch: string,
   ): Promise<void> {
     // Fetch the specific branch
-    await execFileAsync(
-      "git",
-      ["fetch", "origin", `${branch}:${branch}`],
-      { cwd: bareDir, timeout: GIT_TIMEOUT_MS },
-    ).catch(() => {
+    await execFileAsync("git", ["fetch", "origin", `${branch}:${branch}`], {
+      cwd: bareDir,
+      timeout: GIT_TIMEOUT_MS,
+    }).catch(() => {
       // Branch may already be up to date or use different ref format
       // Try fetching all as fallback
       return execFileAsync("git", ["fetch", "--all"], {
@@ -70,34 +67,27 @@ export class WorktreeService {
     });
 
     // Create the worktree
-    await execFileAsync(
-      "git",
-      ["worktree", "add", worktreePath, branch],
-      { cwd: bareDir, timeout: 30_000 },
-    );
+    await execFileAsync("git", ["worktree", "add", worktreePath, branch], {
+      cwd: bareDir,
+      timeout: 30_000,
+    });
   }
 
   /**
    * Remove a git worktree and clean it from the bare clone's worktree list.
    */
-  static async removeWorktree(
-    bareDir: string,
-    worktreePath: string,
-  ): Promise<void> {
+  static async removeWorktree(bareDir: string, worktreePath: string): Promise<void> {
     try {
-      await execFileAsync(
-        "git",
-        ["worktree", "remove", "--force", worktreePath],
-        { cwd: bareDir, timeout: 15_000 },
-      );
+      await execFileAsync("git", ["worktree", "remove", "--force", worktreePath], {
+        cwd: bareDir,
+        timeout: 15_000,
+      });
     } catch {
       // Worktree may have already been removed or path may not exist.
       // Try pruning stale worktree entries.
-      await execFileAsync(
-        "git",
-        ["worktree", "prune"],
-        { cwd: bareDir, timeout: 15_000 },
-      ).catch(() => {});
+      await execFileAsync("git", ["worktree", "prune"], { cwd: bareDir, timeout: 15_000 }).catch(
+        () => {},
+      );
     }
   }
 

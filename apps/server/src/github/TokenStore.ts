@@ -84,14 +84,15 @@ export class TokenStore {
     const { readFile } = await import("node:fs/promises");
     const path = await import("node:path");
     try {
-      const raw = await readFile(
-        path.join(configDir, "github-token"),
-        "utf-8",
-      );
+      const raw = await readFile(path.join(configDir, "github-token"), "utf-8");
       const trimmed = raw.trim();
       return trimmed.length > 0 ? trimmed : null;
     } catch (err: unknown) {
-      if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      if (
+        err instanceof Error &&
+        "code" in err &&
+        (err as NodeJS.ErrnoException).code === "ENOENT"
+      ) {
         return null;
       }
       throw err;
@@ -114,7 +115,11 @@ export class TokenStore {
     try {
       await unlink(path.join(configDir, "github-token"));
     } catch (err: unknown) {
-      if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      if (
+        err instanceof Error &&
+        "code" in err &&
+        (err as NodeJS.ErrnoException).code === "ENOENT"
+      ) {
         return;
       }
       throw err;

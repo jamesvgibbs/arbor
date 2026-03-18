@@ -1,4 +1,9 @@
-import { EventId, MessageId, TurnId, type OrchestrationThreadActivity } from "@arbortools/contracts";
+import {
+  EventId,
+  MessageId,
+  TurnId,
+  type OrchestrationThreadActivity,
+} from "@arbortools/contracts";
 import { describe, expect, it } from "vitest";
 
 import {

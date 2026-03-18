@@ -131,7 +131,11 @@ export const GitHubSubmitReviewInput = Schema.Struct({
   repo: Schema.String,
   prNumber: Schema.Number,
   body: Schema.String,
-  event: Schema.Union([Schema.Literal("APPROVE"), Schema.Literal("COMMENT"), Schema.Literal("REQUEST_CHANGES")]),
+  event: Schema.Union([
+    Schema.Literal("APPROVE"),
+    Schema.Literal("COMMENT"),
+    Schema.Literal("REQUEST_CHANGES"),
+  ]),
   comments: Schema.optional(Schema.Array(GitHubReviewComment)),
 });
 export type GitHubSubmitReviewInput = typeof GitHubSubmitReviewInput.Type;

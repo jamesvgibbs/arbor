@@ -25,9 +25,7 @@ export class ReviewContextManager {
   /**
    * Detect whether a CLAUDE.md already exists in a worktree.
    */
-  async detect(
-    worktreePath: string,
-  ): Promise<{ exists: boolean; path: string | null }> {
+  async detect(worktreePath: string): Promise<{ exists: boolean; path: string | null }> {
     return ReviewContextService.detect(worktreePath);
   }
 
@@ -58,10 +56,7 @@ export class ReviewContextManager {
     };
 
     if (input.skipInit) {
-      const filePath = await ReviewContextService.writePRHeaderOnly(
-        input.worktreePath,
-        details,
-      );
+      const filePath = await ReviewContextService.writePRHeaderOnly(input.worktreePath, details);
       return {
         claudeMdPath: filePath,
         existedAlready: false,

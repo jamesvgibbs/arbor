@@ -22,9 +22,7 @@ export class ReviewContextService {
   /**
    * Check whether a CLAUDE.md file exists in the worktree root.
    */
-  static async detect(
-    worktreePath: string,
-  ): Promise<{ exists: boolean; path: string | null }> {
+  static async detect(worktreePath: string): Promise<{ exists: boolean; path: string | null }> {
     const filePath = path.join(worktreePath, "CLAUDE.md");
     try {
       await access(filePath);
@@ -52,10 +50,7 @@ export class ReviewContextService {
    * Read an existing CLAUDE.md and prepend the PR-specific header block
    * at the top of the file.
    */
-  static async prependPRHeader(
-    filePath: string,
-    details: PRHeaderDetails,
-  ): Promise<void> {
+  static async prependPRHeader(filePath: string, details: PRHeaderDetails): Promise<void> {
     const existing = await readFile(filePath, "utf-8");
     const header = ReviewContextService.buildPRHeader(details);
     await writeFile(filePath, header + "\n" + existing, "utf-8");
@@ -65,10 +60,7 @@ export class ReviewContextService {
    * Write a minimal CLAUDE.md containing only the PR header block.
    * Used when `claude /init` is skipped.
    */
-  static async writePRHeaderOnly(
-    worktreePath: string,
-    details: PRHeaderDetails,
-  ): Promise<string> {
+  static async writePRHeaderOnly(worktreePath: string, details: PRHeaderDetails): Promise<string> {
     const filePath = path.join(worktreePath, "CLAUDE.md");
     const header = ReviewContextService.buildPRHeader(details);
     await writeFile(filePath, header + "\n", "utf-8");

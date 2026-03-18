@@ -49,7 +49,9 @@ function StatusPill({ status }: { status: string }) {
   if (!c) return null;
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-medium ${c.className}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-medium ${c.className}`}
+    >
       <span className={`size-1.5 rounded-full ${c.dotClassName}`} />
       {c.label}
     </span>

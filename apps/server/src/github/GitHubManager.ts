@@ -7,9 +7,7 @@ import type { GitHubPRFileResponse, GitHubPRReviewCommentResponse } from "./GitH
 import type { PRCard, PRDetails, RepoConfig } from "./types";
 
 const GITHUB_CLIENT_ID =
-  process.env.ARBOR_GITHUB_CLIENT_ID ??
-  process.env.GITHUB_CLIENT_ID ??
-  "Ov23liYourClientIdHere";
+  process.env.ARBOR_GITHUB_CLIENT_ID ?? process.env.GITHUB_CLIENT_ID ?? "Ov23liYourClientIdHere";
 
 export class GitHubManager {
   private configDir: string;
@@ -112,17 +110,11 @@ export class GitHubManager {
     return RepoStore.loadRepos(this.configDir);
   }
 
-  async addRepo(
-    owner: string,
-    repo: string,
-  ): Promise<RepoConfig[]> {
+  async addRepo(owner: string, repo: string): Promise<RepoConfig[]> {
     return RepoStore.addRepo(this.configDir, owner, repo);
   }
 
-  async removeRepo(
-    owner: string,
-    repo: string,
-  ): Promise<RepoConfig[]> {
+  async removeRepo(owner: string, repo: string): Promise<RepoConfig[]> {
     this.prCache.invalidate(owner, repo);
     return RepoStore.removeRepo(this.configDir, owner, repo);
   }
@@ -147,11 +139,7 @@ export class GitHubManager {
     return this.fetchAndCachePRs(owner, repo);
   }
 
-  async getPRDetails(
-    owner: string,
-    repo: string,
-    number: number,
-  ): Promise<PRDetails> {
+  async getPRDetails(owner: string, repo: string, number: number): Promise<PRDetails> {
     const service = await this.getGitHubService();
     return service.getPRDetails(owner, repo, number);
   }
