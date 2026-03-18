@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -70,7 +70,8 @@ function SessionsRouteView() {
   const removeMutation = useMutation(
     worktreeRemoveMutationOptions({ queryClient }),
   );
-  const { handleNewThread, projects } = useHandleNewThread();
+  const navigate = useNavigate();
+  const { projects } = useHandleNewThread();
 
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -236,9 +237,9 @@ function SessionsRouteView() {
                                   });
                                 }
 
-                                await handleNewThread(projectId, {
-                                  branch: session.branchName,
-                                  worktreePath: session.worktreePath,
+                                await navigate({
+                                  to: "/review/$projectId",
+                                  params: { projectId },
                                 });
                               }}
                             >
