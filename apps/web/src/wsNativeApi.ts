@@ -12,6 +12,7 @@ import {
   WS_METHODS,
   type WsWelcomePayload,
 } from "@arbortools/contracts";
+import { confirmDialog } from "./lib/confirmDialog";
 
 import { showContextMenuFallback } from "./contextMenuFallback";
 import { WsTransport } from "./wsTransport";
@@ -102,7 +103,7 @@ export function createWsNativeApi(): NativeApi {
         if (window.desktopBridge) {
           return window.desktopBridge.confirm(message);
         }
-        return window.confirm(message);
+        return confirmDialog(message);
       },
     },
     terminal: {
