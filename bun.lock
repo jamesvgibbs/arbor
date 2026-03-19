@@ -14,7 +14,7 @@
     },
     "apps/desktop": {
       "name": "@arbortools/desktop",
-      "version": "0.0.10",
+      "version": "0.0.12",
       "dependencies": {
         "effect": "catalog:",
         "electron": "40.6.0",
@@ -43,7 +43,7 @@
     },
     "apps/server": {
       "name": "arbor",
-      "version": "0.0.10",
+      "version": "0.0.12",
       "bin": {
         "arbor": "./dist/index.mjs",
       },
@@ -72,7 +72,7 @@
     },
     "apps/web": {
       "name": "@arbortools/web",
-      "version": "0.0.10",
+      "version": "0.0.12",
       "dependencies": {
         "@arbortools/contracts": "workspace:*",
         "@arbortools/shared": "workspace:*",
@@ -121,7 +121,7 @@
     },
     "packages/contracts": {
       "name": "@arbortools/contracts",
-      "version": "0.0.10",
+      "version": "0.0.12",
       "dependencies": {
         "effect": "catalog:",
       },
