@@ -451,7 +451,7 @@ const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: "com.arbortools.arborcode",
     productName,
-    artifactName: "T3-Code-${version}-${arch}.${ext}",
+    artifactName: "Arbor-${version}-${arch}.${ext}",
     directories: {
       buildResources: "apps/desktop/resources",
     },

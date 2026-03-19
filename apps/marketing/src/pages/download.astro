@@ -73,7 +73,7 @@ import Layout from "../layouts/Layout.astro";
     const cards = document.querySelectorAll<HTMLAnchorElement>(".download-card");
 
     try {
-      const release = await fetchLatestRelease();
+      const release = await fetchLatest();
 
       if (versionLabel && release.tag_name) {
         versionLabel.textContent = `Latest (${release.tag_name})`;
